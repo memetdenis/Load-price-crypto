@@ -28,4 +28,4 @@ ws = websocket.WebSocketApp("wss://stream.binance.com:9443/ws/!ticker@arr",
                             on_message=on_message,
                             on_close=on_close)
 
-ws.run_forever()  # Set dispatcher to automatic reconnection d
+ws.run_forever()  # Set dispatcher to automatic reconnection
