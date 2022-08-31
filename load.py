@@ -3,9 +3,9 @@ import json
 import time
 import MySQLdb
 
-def on_message(ws, message):
+def Binance_message(ws, message):
     time_start = time.time() #Запомним счетчик времени для замера времени выполнении кода.
-
+    print(message)
     data = json.loads(message)#Выгрузим JSON в массив
 
     #Подключимся к базе данных
@@ -13,19 +13,21 @@ def on_message(ws, message):
     cursor = db.cursor()
 
     #Переберём массив данных(json) 
-    for crypto_symbol in data:
-        cursor.execute("INSERT INTO `price` (`symbol`, `price`) VALUES ('"+crypto_symbol["s"]+"', '"+crypto_symbol["c"]+"') ON DUPLICATE KEY UPDATE price = '"+crypto_symbol["c"]+"' , last_update = UNIX_TIMESTAMP();") #Записать изменение цены
+    #for crypto_symbol in data:
+        #cursor.execute("INSERT INTO `price` (`exchange`, `symbol`, `price`) VALUES ( '1', '"+crypto_symbol["s"]+"', '"+crypto_symbol["c"]+"') ON DUPLICATE KEY UPDATE price = '"+crypto_symbol["c"]+"' , last_modified = UNIX_TIMESTAMP();") #Записать изменение цены
     
     db.commit() #Зафиксировать транзакции
     db.close() #Закрыть подключение
     print(f'Обработали {len(data)} торговых символов за {round(time.time()-time_start,3)} сек.')
-    #time.sleep(3) #Пауза для подумать и остыть.
+    time.sleep(5) #Пауза для подумать и остыть.
 
 def on_close(ws):
     print("### closed ###")
 
+#wss://stream.binance.com:9443/ws/!ticker@arr
+
 ws = websocket.WebSocketApp("wss://stream.binance.com:9443/ws/!ticker@arr",
-                            on_message=on_message,
+                            on_message=Binance_message,
                             on_close=on_close)
 
 ws.run_forever()  # Set dispatcher to automatic reconnection
