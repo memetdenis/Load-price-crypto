@@ -1,4 +1,4 @@
-#Загрузка всех торговых пар с биржи Binance
+#Загрузка всех торговых пар с биржи Binance через WSS
 import websocket
 import json
 import time
