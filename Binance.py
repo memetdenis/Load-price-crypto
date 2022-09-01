@@ -1,3 +1,4 @@
+#Загрузка всех торговых пар с биржи Binance
 import websocket
 import json
 import time
