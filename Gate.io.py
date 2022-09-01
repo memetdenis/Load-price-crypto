@@ -1,3 +1,4 @@
+#Загрузка всех торговых пар с Gate.io через WSS
 import time
 import json
 import websocket
