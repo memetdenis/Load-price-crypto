@@ -14,14 +14,9 @@ def load_price():
     
     #Получим данные в виде JSON
     data = requests.get("https://api.binance.com/api/v3/ticker/24hr").json()
-    #time_load_json = round(time.time()-time_start,3)
 
-    #time_start = time.time()
     #В цикле переберём каждую валюту.
-    #count_symbol = 0
     for symbol in data:
-        #count_symbol += 1
-        #print(f"{count_symbol} : {symbol['symbol']} = {symbol['lastPrice']}")
         cursor.execute("INSERT INTO `price` (`symbol`, `price`) VALUES ('"+symbol["symbol"]+"', '"+symbol["lastPrice"]+"') ON DUPLICATE KEY UPDATE price = '"+symbol["lastPrice"]+"' , last_update = UNIX_TIMESTAMP();") #Записать изменение цены
 
     db.commit() #Зафиксировать транзакции
@@ -30,4 +25,4 @@ def load_price():
 #Бесконечный цикл
 while 1==1:
     load_price()
-    time.sleep(1)
+    #time.sleep(1)
