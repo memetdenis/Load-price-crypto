@@ -28,4 +28,3 @@ def load_price():
 time_old_load = 0
 while 1==1:
     load_price()
-    #time.sleep(10)
