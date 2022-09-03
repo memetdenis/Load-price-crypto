@@ -25,6 +25,5 @@ def load_price():
     print(f"Загрузка JSON за {time_load_json} сек, в базу за {round(time.time()-time_start,3)} сек.")
 
 #Бесконечный цикл
-time_old_load = 0
 while 1==1:
     load_price()
