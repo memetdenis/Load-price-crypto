@@ -39,8 +39,8 @@ def on_open(ws):
     count_symbol = 0
     symbol_load = []
     for symbol in symbols_list:
-        if symbol['trade_status']=='tradable' and symbol['id'].find('USDT') != -1:
-
+        #if symbol['trade_status']=='tradable' and symbol['id'].find('USDT') != -1:
+        if symbol['trade_status']=='tradable':
             symbol_load.append(symbol['id'])
             count_symbol +=1
             if len(symbol_load)>20:
@@ -52,6 +52,7 @@ def on_open(ws):
                     "payload": symbol_load
                 }))   
                 symbol_load = []  
+                
     #Проверим, остались ли тут пары для загрузки
     if len(symbol_load)>0:  
         #Отправим подписку на изменения цены BTC_USDT
