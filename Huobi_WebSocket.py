@@ -5,46 +5,43 @@ import MySQLdb
 import requests
 import gzip
 
-
 #Подключимся к базе данных
 db=MySQLdb.connect(host="localhost", user="root", passwd="", db="price")
 cursor = db.cursor()
 
-# Счетчик количества сообщений
-count_message = 0
-
-# Запомним время
-time_start = time.time()
+count_subbed = 0 # Количество подписок
+count_message = 0 # Количество сообщений
+start_time = time.time() # Запомним время старта
 
 #При получении сообщения
 def on_message(ws, message):
-    global count_message, time_start
+    global cursor, db, count_subbed, count_message, start_time  #Доступ к глобальной переменной
 
-    #Распакуем полученное сообщение.
-    data = gzip.decompress(message)
+    # Распакуем сообщение из архива и выгрузим его в массив.
+    data = json.loads(gzip.decompress(message))
+    
+    if 'ping' in data:
+        #Отправить pong
+        ws.send(json.dumps({
+            "pong": data['ping']
+        })) 
+    elif 'ch' in data:
+        symbol = data['ch'].replace('market.','').replace('.ticker','') # Удалим лишнее в сообщении о торговой паре
+        cursor.execute(f"INSERT INTO `price` (`symbol`, `price`) VALUES ('{symbol}', '{data['tick']['lastPrice']}') ON DUPLICATE KEY UPDATE price = '{data['tick']['lastPrice']}' , last_update = UNIX_TIMESTAMP();") #Записать изменение цены
+        db.commit()
+        count_message += 1
+    elif 'subbed' in data: 
+        count_subbed += 1
+        #print(f"Подписались на канал {data['subbed']}. Всего подписок {count_subbed}")
+    else:
+        print(data) # Неизвестный ответ от сервера
 
-    #Преобразуем в массив
-    array_message = json.loads(data)
-   
-    #Если есть поле ping , то нужно ответить серверу pong
-    if 'ping' in array_message:
-        ws.send(json.dumps({"pong": array_message['ping']})) 
-        #print(f"ping = {array_message['ping']}")
-    #Если есть поле ch то значит это сообщение о курсе торговой пары
-    elif 'ch' in array_message:
-        #Обрежем наименование торговой пары от лишнего 'market.' и '.detail'
-        name = array_message['ch'].replace('market.', '').replace('.detail', '')
-        #Запишем в базу данных
-        cursor.execute(f"INSERT INTO `price` (`symbol`, `price`) VALUES ('{name}', '{array_message['tick']['close']}') ON DUPLICATE KEY UPDATE price = '{array_message['tick']['close']}' , last_update = UNIX_TIMESTAMP();")  
-        db.commit()# Зафиксируем записанное
-        count_message +=1
+    # Если с начала замера прошло больше 3 сек, то выведем сообщение о количестве полученный за это время сообщений от сервера
+    if round(start_time)+10 <= round(time.time()):
+        print(f'За {round(time.time()-start_time,2)} секунд записали {count_message} сообщений')
+        count_message = 0 # Обнулим счетчик сообщений
+        start_time = time.time() # Сбросим счетчик времени
 
-    # Посмотрим, нужно ли сообщить мне о количестве сообщений.
-    if(round(time_start)+9 < round(time.time())):
-        print(f"Получил {count_message} сообщений за {round(time.time() - time_start, 1)} сек.")
-        count_message = 0 # Сбросим счетчик сообщений
-        time_start = time.time() # Запомним новое время.
-        
 #При закрытии подключения к бирже
 def on_close(ws):
     print("### closed ###")
@@ -52,25 +49,21 @@ def on_close(ws):
 def on_error(ws, message):
     print(message)
 
-# При открытии подключения
+#При открытии подключения
 def on_open(ws):
     
-    # Загурзим все торговые пары в массив
-    response = requests.get("https://api.huobi.pro/v2/settings/common/symbols")
-    symbols_list = response.json()
+    #Загурзим все торговые пары в массив
+    symbols_list = requests.get("https://api.huobi.pro/v1/common/symbols").json()
 
-    count_symbol = 0
-    # Каждую торговую пару нужно запросить на сервере.
+    count_symbol = 0 # Количество торговых пар
     for symbol in symbols_list['data']:
-        # Проверим торгуется ли пара
-        if symbol['state']=='online':
-            count_symbol +=1 # Увеличим счетчик торговых пар
-            # Подпишемся на поток.
-            ws.send(json.dumps({"sub": f"market.{symbol['sc']}.detail"}))
-    # Сообщим о количестве найденных торговых пар.       
-    print(f"Нашли для загрузки {count_symbol} символов на бирже Gate")
+        if symbol['state']=='online': #Если пара торгуется
+            count_symbol +=1 # Добавим счетчик количества пар
+            #Отправим подписку на изменения цены
+            ws.send(json.dumps({"sub": f"market.{symbol['symbol']}.ticker"}))
+  
+    print(f"Нашли для загрузки {count_symbol} символов на бирже Huobi")
     
-#Создадим подлючение к бирже через WebSocket
 ws = websocket.WebSocketApp("wss://api.huobi.pro/ws",
                             on_message=on_message,
                             on_close=on_close,
