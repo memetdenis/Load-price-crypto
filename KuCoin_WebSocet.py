@@ -57,9 +57,9 @@ def loadSetting():
     return requests.post('https://api.kucoin.com/api/v1/bullet-public').json()
 
 settings = loadSetting()
-print(settings['data']['instanceServers'][0]['pingInterval'])
-pingInterval = ((settings['data']['instanceServers'][0]['pingInterval']/1000)/2)-1
-pingTime = round(time.time())+5 # Первое сообщение на сервер отправим не менее чем через 5 секунд
+
+pingInterval = round((settings['data']['instanceServers'][0]['pingInterval']/1000)/2)-1
+pingTime = round(time.time()) #
 id_channel = ''
 
 ws = websocket.WebSocketApp(f"{settings['data']['instanceServers'][0]['endpoint']}?token={settings['data']['token']}",
