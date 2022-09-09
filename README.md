@@ -4,6 +4,7 @@
 <br>![Binance](/img/Binance_16x16.png)
 ![Gate](/img/Gate_16x16.png)
 ![Huobi](/img/Huobi_16x16.png)
+![KuCoin](/img/KuCoin_16x16.png)
 
 <ol>
   <li><b>Binance WebSocket</b>. Получаем данные каждую секунду.</li>
@@ -11,4 +12,6 @@
   <li><b>Gate.io WebSocket.</b> Получаем поток всех сделок на бирже. данные идут в режиме реального времени.</li>
   <li><b>Gate.io GET+JSON.</b> Получаем данные по HTTPS в виде JSON. Можно выбрать самому частоту загрузки данных.</b></li>
   <li><b>Huobi WebSocket.</b> Получаем поток всех сделок на бирже. данные идут в режиме реального времени.</li>
+  <li><b>Huobi GET+JSON.</b> Получаем данные по HTTPS в виде JSON. Можно выбрать самому частоту загрузки данных.</li>
+  <li>(/img/KuCoin_16x16.png)<b>KuCoin WebSocket.</b> Получаем поток всех сделок на бирже. данные идут в режиме реального времени.</li>
 </ol>
