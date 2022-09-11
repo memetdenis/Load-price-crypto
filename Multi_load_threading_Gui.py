@@ -3,13 +3,19 @@ import time
 import MySQLdb
 import requests
 import tkinter
+from functools import partial
 
 RunLoad = {
-    "Binance": True,
+    "Binance": False,
     "Gate": False,
-    "Huobi": True,
-    "KuCoin": True
+    "Huobi": False,
+    "KuCoin": False
 }
+
+threading_Job = {}
+frame = {}
+
+
 
 #Подключение к базе данных
 def connectDB():
@@ -17,7 +23,7 @@ def connectDB():
 
 # Функция загрузки цен с биржи Binance
 def load_Binance():
-    global RunLoad
+    global RunLoad, frame
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -43,6 +49,7 @@ def load_Binance():
     conn.close()
 
     # Сообщим о проделанной работе
+    frame['Binance']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузил Binance за {round(time.time()-time_start,3)} сек.")
 
     return RunLoad["Binance"]
@@ -52,6 +59,8 @@ def while_Binance():
     #Бесконечный цикл
     while run==True:
         run = load_Binance()
+        if run==False:
+            frame['Binance']['txt_Job'].configure(text="....")  
         time.sleep(10)
 
 #Функция загрузки цен
@@ -75,6 +84,8 @@ def load_Gate():
             print(inst) # Если ошибка доступа к результату
     conn.commit() # Зафиксировать транзакции
     conn.close()
+    
+    frame['Gate']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Gate за {round(time.time()-time_start,3)} сек.")
 
     return RunLoad["Gate"]
@@ -85,6 +96,8 @@ def while_Gate():
     #Бесконечный цикл
     while run==True:
         run = load_Gate()
+        if run==False:
+            frame['Gate']['txt_Job'].configure(text="....")  
         time.sleep(10)
 
 
@@ -108,7 +121,9 @@ def load_Huobi():
         
     conn.commit() # После всех записей, зафиксируем записаное.
     conn.close()
+    
     # Сообщим о проделанной работе
+    frame['Huobi']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Huobi за {round(time.time()-time_start,3)} сек.")
 
     return RunLoad["Huobi"]
@@ -120,6 +135,8 @@ def while_Huobi():
     #Бесконечный цикл
     while run == True:
         run = load_Huobi()
+        if run==False:
+            frame['Huobi']['txt_Job'].configure(text="....")  
         time.sleep(10)
 
 # Функция загрузки цен с биржи
@@ -143,6 +160,7 @@ def load_KuCoin():
     conn.commit() # После всех записей, зафиксируем записаное.
     conn.close()
     # Сообщим о проделанной работе
+    frame['KuCoin']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка KuCoin за {round(time.time()-time_start,3)} сек.")
 
     return RunLoad["KuCoin"]
@@ -152,27 +170,50 @@ def while_KuCoin():
     run = True
     while run == True:
         run = load_KuCoin()
+        if run==False:
+            frame['KuCoin']['txt_Job'].configure(text="....")           
         time.sleep(10)
 
+def start_while(birza):
+    global threading_Job
+
+    # Узнаем какую  биржу нужно запустить
+    match birza:
+        case 'Binance':
+            threading_Job[birza] = threading.Thread(target = while_Binance)
+        case 'Gate':
+            threading_Job[birza] = threading.Thread(target = while_Gate)
+        case 'Huobi':
+            threading_Job[birza] = threading.Thread(target = while_Huobi)
+        case 'KuCoin':
+            threading_Job[birza] = threading.Thread(target = while_KuCoin)
+
+    threading_Job[birza].start() # Запустим процесс в работу
+
+    
+
 #Запуск разрешенных бирж для загрузки
-def start():
-    global RunLoad
+def start(birza):
+    global RunLoad, threading_Job
 
-    if RunLoad["Binance"]:
-        binance = threading.Thread(target = while_Binance)
-        binance.start()
+    
+    # При получении биржи, меняем статус.
+    if RunLoad[birza]:
+        RunLoad[birza] = False
+    else:
+        RunLoad[birza] = True
 
-    if RunLoad["Gate"]:
-        Gate = threading.Thread(target = while_Gate)
-        Gate.start()
+    # Найдем наш поток, если не работает, то запустим.
+    if RunLoad[birza]:
+        if birza in threading_Job:
+            if threading_Job[birza].is_alive():
+                print(f"Поток биржи {birza} ещё работает.")
+            else:
+                start_while(birza)
+        else:
+            start_while(birza)
 
-    if RunLoad["Huobi"]:
-        Huobi = threading.Thread(target = while_Huobi)
-        Huobi.start()
-
-    if RunLoad["KuCoin"]:
-        KuCoin = threading.Thread(target = while_KuCoin)
-        KuCoin.start()
+    return True
 
 # Остановим все загрузки
 def stopAll():
@@ -184,10 +225,13 @@ def stopAll():
     print("All Stop")
 
 def windowGui():
-    global RunLoad
+    global RunLoad, frame, imgNo, imgOk
     
-    frame = {}
     window = tkinter.Tk()
+
+
+    imgNo = tkinter.PhotoImage(file="img/delete_16x16.png")
+    imgOk = tkinter.PhotoImage(file="img/ok_16x16.png")
 
     for index in RunLoad:
         frame[index] = {}
@@ -197,41 +241,37 @@ def windowGui():
         frame[index]['txt_name'] = tkinter.Label(master=frame[index][0], text=index, width=10)
         frame[index]['txt_name'].pack(side=tkinter.LEFT)
 
-        #Выведим текст согласно состоянию переменной у каждой биржи.
-        if RunLoad[index]:
-            txtLabel = "_"
-            txt_Button = "Остановить"
-        else:
-            txtLabel = "_"
-            txt_Button = "Запустить"
 
-        frame[index]['txt_Job'] = tkinter.Label(master=frame[index][0], text=txtLabel, width=20)
+        frame[index]['img_Job'] = tkinter.Label(master=frame[index][0], image=imgNo, width=20)
+        frame[index]['img_Job'].pack(side=tkinter.LEFT)
+
+        frame[index]['txt_Job'] = tkinter.Label(master=frame[index][0], text="Остановлен...", width=20)
         frame[index]['txt_Job'].pack(side=tkinter.LEFT)
 
-        frame[index]['btn'] = tkinter.Button(master=frame[index][0], text=txt_Button, width=10, command="while_KuCoin")
+        frame[index]['btn'] = tkinter.Button(master=frame[index][0], text="Запустить", width=10, command=partial(start , index))
         frame[index]['btn'].pack(side=tkinter.RIGHT)
 
-    print(frame)
-    window.mainloop() 
-    
-'''
-    frame2 = tkinter.Frame(master=window)
-    frame2.pack(fill=tkinter.X)
+    window.mainloop()
 
-    txt_Binance2 = tkinter.Label(master=frame2, text="Gate", width=10)
-    txt_Binance2.pack(side=tkinter.LEFT)
+def update_txt_GUI():
+    global RunLoad, frame, imgNo, imgOk
 
-    txt_BinanceJob2 = tkinter.Label(master=frame2, text="Job", width=10)
-    txt_BinanceJob2.pack(side=tkinter.LEFT)
-
-    btn_Binance2 = tkinter.Button(master=frame2, text="Стоп", width=10)
-    btn_Binance2.pack(side=tkinter.RIGHT)
-'''
-
-       
+    time.sleep(2)
+    ok = True
+    while ok==True:
+        for index in RunLoad:
+            try:
+                if RunLoad[index]:
+                    frame[index]['img_Job'].configure(image=imgOk)
+                else:
+                    frame[index]['img_Job'].configure(image=imgNo)
+            except:
+                ok = False
+        time.sleep(1)
 
 if __name__ == '__main__':
+
+    GUI = threading.Thread(target = update_txt_GUI)
+    GUI.start()
+
     windowGui()
-    #start()
-    #time.sleep(30)
-    #stopAll()
