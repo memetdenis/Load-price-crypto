@@ -5,7 +5,7 @@ import MySQLdb
 import requests
 
 #Подключимся к базе данных
-db=MySQLdb.connect(host="localhost", user="root", passwd="", db="price")
+db=MySQLdb.connect(host="localhost", user="root", passwd="", db="price2")
 cursor = db.cursor()
 
 count_message = 0 # Количество сообщений
@@ -27,12 +27,15 @@ def on_message(ws, message):
                 "id": data['id'],                     
                 "type": "subscribe",
                 "topic": "/market/ticker:all",
-                "response": 'true'                              
+                "response": 'true'                      
             }))
+            
         # Если ключ 'type' = 'message' , значит получилди сообщение о ордере. ТОрговая пара и цена
         elif data['type']=='message':
             count_message += 1
             cursor.execute(f"INSERT INTO `price` (`symbol`, `price`) VALUES ('{data['subject']}', '{data['data']['price']}') ON DUPLICATE KEY UPDATE price = '{data['data']['price']}' , last_update = UNIX_TIMESTAMP();")  # Записать изменение цены
+            db.commit() # Зафиксируем запись
+
         # Неизвестное сообщение с ключом 'type'
         else:
             print(data)
@@ -65,7 +68,7 @@ def on_error(ws, message):
 def loadSetting():
     return requests.post('https://api.kucoin.com/api/v1/bullet-public').json()
 
-# Запомним настройки
+# Получим настройки для подключения
 settings = loadSetting() 
 
 # Запомним интервал для поддержки соединения
