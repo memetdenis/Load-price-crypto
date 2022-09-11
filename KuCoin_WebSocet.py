@@ -29,7 +29,7 @@ def on_message(ws, message):
                 "topic": "/market/ticker:all",
                 "response": 'true'                      
             }))
-            
+
         # Если ключ 'type' = 'message' , значит получилди сообщение о ордере. ТОрговая пара и цена
         elif data['type']=='message':
             count_message += 1
