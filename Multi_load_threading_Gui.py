@@ -5,6 +5,13 @@ import requests
 import tkinter
 from functools import partial
 
+# Массив настроек
+setting = {
+        "refreshTime":10 # Время повторной загрузки
+    }
+
+# Массив всех наших бирж
+# По умолчанию всё выключенно.
 RunLoad = {
     "Binance": False,
     "Gate": False,
@@ -12,8 +19,12 @@ RunLoad = {
     "KuCoin": False
 }
 
-threading_Job = {}
-frame = {}
+# Массив с нашими потоками
+threading_Job = {} # Пока пустой
+
+# Массив с нашими формами.
+# Что бы не плодить переменные, пишем всё в массив.
+frame = {}  
 
 
 
@@ -33,6 +44,7 @@ def load_Binance():
     #Получим по ссылки данные с ценами.
     price_list = requests.get("https://api.binance.com/api/v3/ticker/24hr").json() # Получим ответ в виде JSON формата
 
+    # Если в сообщении есть код ошибки, то стоит прервать работу.
     if 'code' in price_list:
         print(f"Error code {price_list['code']} msg = {price_list['msg']}")
         time.sleep(10)
@@ -52,16 +64,22 @@ def load_Binance():
     frame['Binance']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузил Binance за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Binance"]
+    return RunLoad["Binance"] # Вернём глобальную переменную биржи, вдруг мы решили остановить её.
 
 def while_Binance():
-    run=True
+    global setting
+
+    # При старте цикл работает 
+    run=True 
+
     #Бесконечный цикл
     while run==True:
         run = load_Binance()
+        # Если остановили цикл, то надо изменить текст на точки. Что бы было понятно, что цикл больше не работает.
         if run==False:
-            frame['Binance']['txt_Job'].configure(text="....")  
-        time.sleep(10)
+            frame['Binance']['txt_Job'].configure(text="....") 
+         
+        time.sleep(setting["refreshTime"])
 
 #Функция загрузки цен
 def load_Gate():
@@ -91,14 +109,17 @@ def load_Gate():
     return RunLoad["Gate"]
 
 def while_Gate():
-    run = True
+    global setting
+
+    # При старте цикл работает 
+    run=True 
 
     #Бесконечный цикл
     while run==True:
         run = load_Gate()
         if run==False:
             frame['Gate']['txt_Job'].configure(text="....")  
-        time.sleep(10)
+        time.sleep(setting["refreshTime"])
 
 
 # Функция загрузки цен с биржи GATE
@@ -130,14 +151,17 @@ def load_Huobi():
 
 # Сделаем бесконечный цикл загрузки цен.
 def while_Huobi():
-    run = True
+    global setting
+
+    # При старте цикл работает 
+    run=True 
 
     #Бесконечный цикл
     while run == True:
         run = load_Huobi()
         if run==False:
             frame['Huobi']['txt_Job'].configure(text="....")  
-        time.sleep(10)
+        time.sleep(setting["refreshTime"])
 
 # Функция загрузки цен с биржи
 def load_KuCoin():
@@ -167,12 +191,17 @@ def load_KuCoin():
 
 # Сделаем бесконечный цикл загрузки цен.
 def while_KuCoin():
-    run = True
+    global setting
+
+    # При старте цикл работает 
+    run=True 
+
+    #Бесконечный цикл
     while run == True:
         run = load_KuCoin()
         if run==False:
             frame['KuCoin']['txt_Job'].configure(text="....")           
-        time.sleep(10)
+        time.sleep(setting["refreshTime"])
 
 def start_while(birza):
     global threading_Job
@@ -229,7 +258,6 @@ def windowGui():
     
     window = tkinter.Tk()
 
-
     imgNo = tkinter.PhotoImage(file="img/delete_16x16.png")
     imgOk = tkinter.PhotoImage(file="img/ok_16x16.png")
 
@@ -256,17 +284,22 @@ def windowGui():
 def update_txt_GUI():
     global RunLoad, frame, imgNo, imgOk
 
+    # Подождём пару секунд, пока форма откроется.
     time.sleep(2)
+
     ok = True
     while ok==True:
         for index in RunLoad:
             try:
-                if RunLoad[index]:
+                if RunLoad[index]:# Если должен работать
                     frame[index]['img_Job'].configure(image=imgOk)
-                else:
+                    frame[index]['btn'].configure(text="Остановить")
+                else: # Если остановлен
                     frame[index]['img_Job'].configure(image=imgNo)
-            except:
+                    frame[index]['btn'].configure(text="Запустить")
+            except: # При ошибки доступа к форме, значит её закрыли. Можем завершить работу программы.
                 ok = False
+        # обновляем форму каждую секунду.
         time.sleep(1)
 
 if __name__ == '__main__':
