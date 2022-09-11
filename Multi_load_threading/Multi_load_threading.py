@@ -3,12 +3,9 @@ import time
 import MySQLdb
 import requests
 
-RunLoad = {
-    "Binance": True,
-    "Gate": True,
-    "Huobi": True,
-    "KuCoin": True
-}
+setting = {
+        "refreshTime":10 # Время повторной загрузки
+    }
 
 #Подключение к базе данных
 def connectDB():
@@ -16,7 +13,6 @@ def connectDB():
 
 # Функция загрузки цен с биржи Binance
 def load_Binance():
-    global RunLoad
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -44,18 +40,16 @@ def load_Binance():
     # Сообщим о проделанной работе
     print(f"Загрузил Binance за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Binance"]
 
 def while_binance():
-    run=True
-    #Бесконечный цикл
-    while run==True:
-        run = load_Binance()
-        time.sleep(10)
+    global setting
+
+    while 1==1: # Бесконечный цикл
+        load_Binance()
+        time.sleep(setting["refreshTime"])
 
 #Функция загрузки цен
 def load_Gate():
-    global RunLoad
     
     time_start = time.time()
 
@@ -76,20 +70,17 @@ def load_Gate():
     conn.close()
     print(f"Загрузка Gate за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Gate"]
 
 def while_Gate():
-    run = True
+    global setting
 
-    #Бесконечный цикл
-    while run==True:
-        run = load_Gate()
-        time.sleep(10)
+    while 1==1: # Бесконечный цикл
+        load_Gate()
+        time.sleep(setting["refreshTime"])
 
 
 # Функция загрузки цен с биржи GATE
 def load_Huobi():
-    global RunLoad
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -110,20 +101,17 @@ def load_Huobi():
     # Сообщим о проделанной работе
     print(f"Загрузка Huobi за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Huobi"]
 
 # Сделаем бесконечный цикл загрузки цен.
 def while_Huobi():
-    run = True
+    global setting
 
-    #Бесконечный цикл
-    while run == True:
-        run = load_Huobi()
-        time.sleep(10)
+    while 1==1: # Бесконечный цикл
+        load_Huobi()
+        time.sleep(setting["refreshTime"])
 
 # Функция загрузки цен с биржи
 def load_KuCoin():
-    global RunLoad
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -144,45 +132,28 @@ def load_KuCoin():
     # Сообщим о проделанной работе
     print(f"Загрузка KuCoin за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["KuCoin"]
 
 # Сделаем бесконечный цикл загрузки цен.
 def while_KuCoin():
-    run = True
-    while run == True:
-        run = load_KuCoin()
-        time.sleep(10)
+    global setting
+    while 1==1: # Бесконечный цикл
+        load_KuCoin()
+        time.sleep(setting["refreshTime"])
 
 #Запуск разрешенных бирж для загрузки
 def start():
-    global RunLoad
 
-    if RunLoad["Binance"]:
-        binance = threading.Thread(target = while_binance)
-        binance.start()
+    binance = threading.Thread(target = while_binance)
+    binance.start()
 
-    if RunLoad["Gate"]:
-        Gate = threading.Thread(target = while_Gate)
-        Gate.start()
+    Gate = threading.Thread(target = while_Gate)
+    Gate.start()
 
-    if RunLoad["Huobi"]:
-        Huobi = threading.Thread(target = while_Huobi)
-        Huobi.start()
+    Huobi = threading.Thread(target = while_Huobi)
+    Huobi.start()
 
-    if RunLoad["KuCoin"]:
-        KuCoin = threading.Thread(target = while_KuCoin)
-        KuCoin.start()
-
-# Остановим все загрузки
-def stopAll():
-    global RunLoad
-    RunLoad["Binance"]  = False
-    RunLoad["Gate"]     = False
-    RunLoad["Huobi"]    = False
-    RunLoad["KuCoin"]   = False
-    print("All Stop")
+    KuCoin = threading.Thread(target = while_KuCoin)
+    KuCoin.start()
 
 if __name__ == '__main__':
     start()
-    time.sleep(30)
-    stopAll()
