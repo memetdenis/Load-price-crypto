@@ -2,10 +2,11 @@ import threading
 import time
 import MySQLdb
 import requests
+import tkinter
 
 RunLoad = {
     "Binance": True,
-    "Gate": True,
+    "Gate": False,
     "Huobi": True,
     "KuCoin": True
 }
@@ -46,7 +47,7 @@ def load_Binance():
 
     return RunLoad["Binance"]
 
-def while_binance():
+def while_Binance():
     run=True
     #Бесконечный цикл
     while run==True:
@@ -158,7 +159,7 @@ def start():
     global RunLoad
 
     if RunLoad["Binance"]:
-        binance = threading.Thread(target = while_binance)
+        binance = threading.Thread(target = while_Binance)
         binance.start()
 
     if RunLoad["Gate"]:
@@ -182,7 +183,55 @@ def stopAll():
     RunLoad["KuCoin"]   = False
     print("All Stop")
 
+def windowGui():
+    global RunLoad
+    
+    frame = {}
+    window = tkinter.Tk()
+
+    for index in RunLoad:
+        frame[index] = {}
+        frame[index][0] = tkinter.Frame(master=window)
+        frame[index][0].pack(fill=tkinter.X)
+
+        frame[index]['txt_name'] = tkinter.Label(master=frame[index][0], text=index, width=10)
+        frame[index]['txt_name'].pack(side=tkinter.LEFT)
+
+        #Выведим текст согласно состоянию переменной у каждой биржи.
+        if RunLoad[index]:
+            txtLabel = "_"
+            txt_Button = "Остановить"
+        else:
+            txtLabel = "_"
+            txt_Button = "Запустить"
+
+        frame[index]['txt_Job'] = tkinter.Label(master=frame[index][0], text=txtLabel, width=20)
+        frame[index]['txt_Job'].pack(side=tkinter.LEFT)
+
+        frame[index]['btn'] = tkinter.Button(master=frame[index][0], text=txt_Button, width=10, command="while_KuCoin")
+        frame[index]['btn'].pack(side=tkinter.RIGHT)
+
+    print(frame)
+    window.mainloop() 
+    
+'''
+    frame2 = tkinter.Frame(master=window)
+    frame2.pack(fill=tkinter.X)
+
+    txt_Binance2 = tkinter.Label(master=frame2, text="Gate", width=10)
+    txt_Binance2.pack(side=tkinter.LEFT)
+
+    txt_BinanceJob2 = tkinter.Label(master=frame2, text="Job", width=10)
+    txt_BinanceJob2.pack(side=tkinter.LEFT)
+
+    btn_Binance2 = tkinter.Button(master=frame2, text="Стоп", width=10)
+    btn_Binance2.pack(side=tkinter.RIGHT)
+'''
+
+       
+
 if __name__ == '__main__':
-    start()
-    time.sleep(30)
-    stopAll()
+    windowGui()
+    #start()
+    #time.sleep(30)
+    #stopAll()
