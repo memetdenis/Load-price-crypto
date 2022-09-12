@@ -4,11 +4,23 @@
 - Huobi
 - KuCoin
 
-Загружаем каждые 10 секунд.
-Выбрать интервал можно в настройках:
-
+Настройка :
 ```Python
 setting = {
-        "refreshTime":10 # Время повторной загрузки
+        "refreshTime":60, # Время повторной загрузки
+        "host":"localhost", # Хост для MySQL
+        "user":"root", # Логин MySQL
+        "passwd":"", # Пароль MySQL
+        "db":"price" # База MySQL
     }
+```
+
+Настройка автозапуска загрузки
+```Python
+RunLoad = {
+    "Binance": False,
+    "Gate": True, # Авто запуск
+    "Huobi": False,
+    "KuCoin": False
+}
 ```
