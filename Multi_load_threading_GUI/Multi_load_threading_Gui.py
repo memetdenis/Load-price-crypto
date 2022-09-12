@@ -7,7 +7,11 @@ from functools import partial
 
 # Массив настроек
 setting = {
-        "refreshTime":70 # Время повторной загрузки
+        "refreshTime":60, # Время повторной загрузки
+        "host":"localhost", # Хост для MySQL
+        "user":"root", # Логин MySQL
+        "passwd":"", # Пароль MySQL
+        "db":"price" # База MySQL
     }
 
 # Массив всех наших бирж
@@ -28,7 +32,8 @@ frame = {}
 
 #Подключение к базе данных
 def connectDB():
-    return MySQLdb.connect(host="localhost", user="root", passwd="", db="price")
+    global setting
+    return MySQLdb.connect(host=setting["host"], user=setting["user"], passwd=setting["passwd"], db=setting["db"])
 
 # Функция загрузки цен с биржи Binance
 def load_Binance():
