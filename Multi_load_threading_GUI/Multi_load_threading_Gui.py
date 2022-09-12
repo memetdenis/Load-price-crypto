@@ -15,7 +15,7 @@ setting = {
 RunLoad = {
     "Binance": False,
     "Gate": False,
-    "Huobi": True,
+    "Huobi": False,
     "KuCoin": False
 }
 
@@ -90,7 +90,7 @@ def while_Binance():
          
         
 
-#Функция загрузки цен
+#Функция загрузки цен Gate
 def load_Gate():
     
     time_start = time.time()
@@ -114,12 +114,16 @@ def load_Gate():
     frame['Gate']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Gate за {round(time.time()-time_start,3)} сек.")
 
+# Цикл запуска загрузки цены
 def while_Gate():
     global setting, RunLoad
 
+    # Запомним 
     start_time = round(time.time())
 
-    birza = "Gate"
+    # Название биржи в масииве. 
+    # Для доступа к форме и состоянию загрузки
+    birza = "Gate" 
 
     frame[birza]['txt_Job'].configure(text="Запускаю")
 
