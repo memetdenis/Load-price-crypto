@@ -7,7 +7,7 @@ from functools import partial
 
 # Массив настроек
 setting = {
-        "refreshTime":10 # Время повторной загрузки
+        "refreshTime":70 # Время повторной загрузки
     }
 
 # Массив всех наших бирж
@@ -15,7 +15,7 @@ setting = {
 RunLoad = {
     "Binance": False,
     "Gate": False,
-    "Huobi": False,
+    "Huobi": True,
     "KuCoin": False
 }
 
@@ -26,15 +26,13 @@ threading_Job = {} # Пока пустой
 # Что бы не плодить переменные, пишем всё в массив.
 frame = {}  
 
-
-
 #Подключение к базе данных
 def connectDB():
     return MySQLdb.connect(host="localhost", user="root", passwd="", db="price")
 
 # Функция загрузки цен с биржи Binance
 def load_Binance():
-    global RunLoad, frame
+    global frame
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -64,26 +62,36 @@ def load_Binance():
     frame['Binance']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузил Binance за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Binance"] # Вернём глобальную переменную биржи, вдруг мы решили остановить её.
-
 def while_Binance():
-    global setting
+    global setting, RunLoad
 
-    # При старте цикл работает 
-    run=True 
+    start_time = round(time.time())
 
-    #Бесконечный цикл
-    while run==True:
-        run = load_Binance()
-        # Если остановили цикл, то надо изменить текст на точки. Что бы было понятно, что цикл больше не работает.
-        if run==False:
-            frame['Binance']['txt_Job'].configure(text="....") 
+    birza = "Binance"
+
+    frame[birza]['txt_Job'].configure(text="Запускаю")
+
+    #Цикл работает, пока нужно загружать цены
+    while RunLoad[birza]:
+        # Расчитаем время до запуска
+        timer = start_time+setting["refreshTime"] - round(time.time())
+
+        if timer <= 0:# Пора запускать
+            frame[birza]['txt_time'].configure(text=f"{timer}")
+            load_Binance() # Загрузим цены
+            start_time = round(time.time()) # Сбросим время
+        else: # Ждем ещё секунду
+            time.sleep(1)
+            frame[birza]['txt_time'].configure(text=f"{timer}") # Выведем таймер на экран
+
+    # Если остановили цикл, то надо подчистить текст.
+    frame[birza]['txt_Job'].configure(text="")
+    frame[birza]['txt_time'].configure(text="")
          
-        time.sleep(setting["refreshTime"])
+        
 
 #Функция загрузки цен
 def load_Gate():
-    global RunLoad
     
     time_start = time.time()
 
@@ -106,25 +114,36 @@ def load_Gate():
     frame['Gate']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Gate за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Gate"]
-
 def while_Gate():
-    global setting
+    global setting, RunLoad
 
-    # При старте цикл работает 
-    run=True 
+    start_time = round(time.time())
 
-    #Бесконечный цикл
-    while run==True:
-        run = load_Gate()
-        if run==False:
-            frame['Gate']['txt_Job'].configure(text="....")  
-        time.sleep(setting["refreshTime"])
+    birza = "Gate"
+
+    frame[birza]['txt_Job'].configure(text="Запускаю")
+
+    #Цикл работает, пока нужно загружать цены
+    while RunLoad[birza]:
+        # Расчитаем время до запуска
+        timer = start_time+setting["refreshTime"] - round(time.time())
+
+        if timer <= 0:# Пора запускать
+            frame[birza]['txt_time'].configure(text=f"{timer}")
+            load_Gate() # Загрузим цены
+            start_time = round(time.time()) # Сбросим время
+        else: # Ждем ещё секунду
+            time.sleep(1)
+            frame[birza]['txt_time'].configure(text=f"{timer}") # Выведем таймер на экран
+
+    # Если остановили цикл, то надо подчистить текст.
+    frame[birza]['txt_Job'].configure(text="")
+    frame[birza]['txt_time'].configure(text="")
 
 
 # Функция загрузки цен с биржи GATE
 def load_Huobi():
-    global RunLoad
+
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -147,25 +166,37 @@ def load_Huobi():
     frame['Huobi']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Huobi за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["Huobi"]
 
 # Сделаем бесконечный цикл загрузки цен.
 def while_Huobi():
-    global setting
+    global setting, RunLoad
 
-    # При старте цикл работает 
-    run=True 
+    start_time = round(time.time())
 
-    #Бесконечный цикл
-    while run == True:
-        run = load_Huobi()
-        if run==False:
-            frame['Huobi']['txt_Job'].configure(text="....")  
-        time.sleep(setting["refreshTime"])
+    birza = "Huobi"
+
+    frame[birza]['txt_Job'].configure(text="Запускаю")
+
+    #Цикл работает, пока нужно загружать цены
+    while RunLoad[birza]:
+        # Расчитаем время до запуска
+        timer = start_time+setting["refreshTime"] - round(time.time())
+
+        if timer <= 0:# Пора запускать
+            frame[birza]['txt_time'].configure(text=f"{timer}")
+            load_Huobi() # Загрузим цены
+            start_time = round(time.time()) # Сбросим время
+        else: # Ждем ещё секунду
+            time.sleep(1)
+            frame[birza]['txt_time'].configure(text=f"{timer}") # Выведем таймер на экран
+
+    # Если остановили цикл, то надо подчистить текст.
+    frame[birza]['txt_Job'].configure(text="")
+    frame[birza]['txt_time'].configure(text="")
 
 # Функция загрузки цен с биржи
 def load_KuCoin():
-    global RunLoad
+
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -187,21 +218,32 @@ def load_KuCoin():
     frame['KuCoin']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка KuCoin за {round(time.time()-time_start,3)} сек.")
 
-    return RunLoad["KuCoin"]
-
 # Сделаем бесконечный цикл загрузки цен.
 def while_KuCoin():
-    global setting
+    global setting, RunLoad
 
-    # При старте цикл работает 
-    run=True 
+    start_time = round(time.time())
 
-    #Бесконечный цикл
-    while run == True:
-        run = load_KuCoin()
-        if run==False:
-            frame['KuCoin']['txt_Job'].configure(text="....")           
-        time.sleep(setting["refreshTime"])
+    birza = "KuCoin"
+
+    frame[birza]['txt_Job'].configure(text="Запускаю")
+
+    #Цикл работает, пока нужно загружать цены
+    while RunLoad[birza]:
+        # Расчитаем время до запуска
+        timer = start_time+setting["refreshTime"] - round(time.time())
+
+        if timer <= 0:# Пора запускать
+            frame[birza]['txt_time'].configure(text=f"{timer}")
+            load_KuCoin() # Загрузим цены
+            start_time = round(time.time()) # Сбросим время
+        else: # Ждем ещё секунду
+            time.sleep(1)
+            frame[birza]['txt_time'].configure(text=f"{timer}") # Выведем таймер на экран
+
+    # Если остановили цикл, то надо подчистить текст.
+    frame[birza]['txt_Job'].configure(text="")
+    frame[birza]['txt_time'].configure(text="")
 
 def start_while(birza):
     global threading_Job
@@ -244,6 +286,17 @@ def start(birza):
 
     return True
 
+#Выполним проверку, что нужно запусти при запуске программы
+def start_Onload():
+    global RunLoad
+
+    # Подождём пару секунд, пока форма откроется.
+    time.sleep(2)
+
+    for index in RunLoad:
+        if RunLoad[index]:
+            start_while(index)
+
 # Остановим все загрузки
 def stopAll():
     global RunLoad
@@ -276,6 +329,9 @@ def windowGui():
         frame[index]['txt_Job'] = tkinter.Label(master=frame[index][0], text="Остановлен...", width=20)
         frame[index]['txt_Job'].pack(side=tkinter.LEFT)
 
+        frame[index]['txt_time'] = tkinter.Label(master=frame[index][0], text="", width=5)
+        frame[index]['txt_time'].pack(side=tkinter.LEFT)
+
         frame[index]['btn'] = tkinter.Button(master=frame[index][0], text="Запустить", width=10, command=partial(start , index))
         frame[index]['btn'].pack(side=tkinter.RIGHT)
 
@@ -303,8 +359,11 @@ def update_txt_GUI():
         time.sleep(1)
 
 if __name__ == '__main__':
-
+    
     GUI = threading.Thread(target = update_txt_GUI)
     GUI.start()
+
+    startAuto = threading.Thread(target = start_Onload)
+    startAuto.start()
 
     windowGui()
