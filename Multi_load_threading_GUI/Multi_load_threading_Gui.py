@@ -7,7 +7,7 @@ from functools import partial
 
 # Массив настроек
 setting = {
-        "refreshTime":60, # Время повторной загрузки
+        "refreshTime":15, # Время повторной загрузки
         "host":"localhost", # Хост для MySQL
         "user":"root", # Логин MySQL
         "passwd":"", # Пароль MySQL
@@ -28,7 +28,7 @@ threading_Job = {} # Пока пустой
 
 # Массив с нашими формами.
 # Что бы не плодить переменные, пишем всё в массив.
-frame = {}  
+frame = {}
 
 #Подключение к базе данных
 def connectDB():
@@ -92,9 +92,7 @@ def while_Binance():
     # Если остановили цикл, то надо подчистить текст.
     frame[birza]['txt_Job'].configure(text="")
     frame[birza]['txt_time'].configure(text="")
-         
-        
-
+               
 #Функция загрузки цен Gate
 def load_Gate():
     
@@ -149,7 +147,6 @@ def while_Gate():
     frame[birza]['txt_Job'].configure(text="")
     frame[birza]['txt_time'].configure(text="")
 
-
 # Функция загрузки цен с биржи GATE
 def load_Huobi():
 
@@ -174,7 +171,6 @@ def load_Huobi():
     # Сообщим о проделанной работе
     frame['Huobi']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Huobi за {round(time.time()-time_start,3)} сек.")
-
 
 # Сделаем бесконечный цикл загрузки цен.
 def while_Huobi():
@@ -254,6 +250,7 @@ def while_KuCoin():
     frame[birza]['txt_Job'].configure(text="")
     frame[birza]['txt_time'].configure(text="")
 
+# Запустим нужную биржу в новый поток.
 def start_while(birza):
     global threading_Job
 
@@ -270,13 +267,12 @@ def start_while(birza):
 
     threading_Job[birza].start() # Запустим процесс в работу
 
-    
-
-#Запуск разрешенных бирж для загрузки
+# Смена работы загрузки биржи.
+# Если работало, то остановим
+# Если не работало, то запустим
 def start(birza):
     global RunLoad, threading_Job
-
-    
+  
     # При получении биржи, меняем статус.
     if RunLoad[birza]:
         RunLoad[birza] = False
@@ -286,14 +282,12 @@ def start(birza):
     # Найдем наш поток, если не работает, то запустим.
     if RunLoad[birza]:
         if birza in threading_Job:
-            if threading_Job[birza].is_alive():
+            if threading_Job[birza].is_alive(): # ещё работает
                 print(f"Поток биржи {birza} ещё работает.")
-            else:
+            else: # Потока нет, надо запустить
                 start_while(birza)
-        else:
+        else: # Потока для биржи ещё не создавали
             start_while(birza)
-
-    return True
 
 #Выполним проверку, что нужно запусти при запуске программы
 def start_Onload():
@@ -309,44 +303,51 @@ def start_Onload():
 # Остановим все загрузки
 def stopAll():
     global RunLoad
-    RunLoad["Binance"]  = False
-    RunLoad["Gate"]     = False
-    RunLoad["Huobi"]    = False
-    RunLoad["KuCoin"]   = False
+    for index in RunLoad:
+        RunLoad[index]  = False
     print("All Stop")
 
+# Создаём форму для управления загрузкой
 def windowGui():
     global RunLoad, frame, imgNo, imgOk
     
     window = tkinter.Tk()
 
+    # Картинки для отображения работы
     imgNo = tkinter.PhotoImage(file="img/delete_16x16.png")
     imgOk = tkinter.PhotoImage(file="img/ok_16x16.png")
 
+    # для каждой биржи нужно создать строку для управления запуском.
     for index in RunLoad:
+        # Каждый раз создаём новый фрейм
         frame[index] = {}
         frame[index][0] = tkinter.Frame(master=window)
         frame[index][0].pack(fill=tkinter.X)
 
+        # Название биржи
         frame[index]['txt_name'] = tkinter.Label(master=frame[index][0], text=index, width=10)
         frame[index]['txt_name'].pack(side=tkinter.LEFT)
 
-
+        # Картинка работы
         frame[index]['img_Job'] = tkinter.Label(master=frame[index][0], image=imgNo, width=20)
         frame[index]['img_Job'].pack(side=tkinter.LEFT)
 
-        frame[index]['txt_Job'] = tkinter.Label(master=frame[index][0], text="Остановлен...", width=20)
+        # текст при работе
+        frame[index]['txt_Job'] = tkinter.Label(master=frame[index][0], text="", width=20)
         frame[index]['txt_Job'].pack(side=tkinter.LEFT)
 
+        # Таймер выполнения кода
         frame[index]['txt_time'] = tkinter.Label(master=frame[index][0], text="", width=5)
         frame[index]['txt_time'].pack(side=tkinter.LEFT)
 
+        # Кнопка запуска или остановки
         frame[index]['btn'] = tkinter.Button(master=frame[index][0], text="Запустить", width=10, command=partial(start , index))
         frame[index]['btn'].pack(side=tkinter.RIGHT)
 
     window.mainloop()
 
-def update_txt_GUI():
+# Обновления формы каждую секунду.
+def update_GUI():
     global RunLoad, frame, imgNo, imgOk
 
     # Подождём пару секунд, пока форма откроется.
@@ -357,11 +358,11 @@ def update_txt_GUI():
         for index in RunLoad:
             try:
                 if RunLoad[index]:# Если должен работать
-                    frame[index]['img_Job'].configure(image=imgOk)
-                    frame[index]['btn'].configure(text="Остановить")
+                    frame[index]['img_Job'].configure(image=imgOk) # Сменим картинку
+                    frame[index]['btn'].configure(text="Остановить") # Сменим текст на кнопке
                 else: # Если остановлен
-                    frame[index]['img_Job'].configure(image=imgNo)
-                    frame[index]['btn'].configure(text="Запустить")
+                    frame[index]['img_Job'].configure(image=imgNo) # Сменим картинку
+                    frame[index]['btn'].configure(text="Запустить") # Сменим текст на кнопке
             except: # При ошибки доступа к форме, значит её закрыли. Можем завершить работу программы.
                 ok = False
         # обновляем форму каждую секунду.
@@ -369,10 +370,13 @@ def update_txt_GUI():
 
 if __name__ == '__main__':
     
-    GUI = threading.Thread(target = update_txt_GUI)
+    # отдельный поток для обновления формы
+    GUI = threading.Thread(target = update_GUI)
     GUI.start()
 
+    # Запуск отдельного потока на проверку авто старта
     startAuto = threading.Thread(target = start_Onload)
     startAuto.start()
 
+    # Создадим нашу форму
     windowGui()
