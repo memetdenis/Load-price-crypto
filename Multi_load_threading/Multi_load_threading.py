@@ -44,7 +44,7 @@ def load_Binance():
 def while_binance():
     global setting
 
-    while 1==1: # Бесконечный цикл
+    while True: # Бесконечный цикл
         load_Binance()
         time.sleep(setting["refreshTime"])
 
@@ -74,7 +74,7 @@ def load_Gate():
 def while_Gate():
     global setting
 
-    while 1==1: # Бесконечный цикл
+    while True: # Бесконечный цикл
         load_Gate()
         time.sleep(setting["refreshTime"])
 
@@ -106,7 +106,7 @@ def load_Huobi():
 def while_Huobi():
     global setting
 
-    while 1==1: # Бесконечный цикл
+    while True: # Бесконечный цикл
         load_Huobi()
         time.sleep(setting["refreshTime"])
 
@@ -136,7 +136,7 @@ def load_KuCoin():
 # Сделаем бесконечный цикл загрузки цен.
 def while_KuCoin():
     global setting
-    while 1==1: # Бесконечный цикл
+    while True: # Бесконечный цикл
         load_KuCoin()
         time.sleep(setting["refreshTime"])
 
