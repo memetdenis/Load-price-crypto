@@ -11,7 +11,25 @@ setting = {
         "host":"localhost", # Хост для MySQL
         "user":"root", # Логин MySQL
         "passwd":"", # Пароль MySQL
-        "db":"price" # База MySQL
+        "db":"price", # База MySQL
+        "Checkbox": {
+            "history_all": {
+                "name": "Всё за сутки",
+                "act" : True
+            },
+            "history_10m": {
+                "name": "За сутки , каждые 10 минут",
+                "act" : True
+            },
+            "history_1h": {
+                "name": "За сутки , каждый час",
+                "act" : True
+            },
+            "history_1d": {
+                "name": "Всегда, раз в день",
+                "act" : True
+            }
+        }
     }
 
 # Массив всех наших бирж и их настроек 
@@ -40,6 +58,9 @@ threading_Job = {} # Пока пустой
 # Массив с нашими формами.
 # Что бы не плодить переменные, пишем всё в массив.
 frame = {}
+    
+# Пустой массив для иконок
+img = {}
 
 #Подключение к базе данных
 def connectDB():
@@ -60,7 +81,8 @@ def price_difference(new, old):
         
 # Загрузка Binance
 def load_Binance():
-    global frame
+    global frame, setting
+
     time_start = time.time() # Запомним время страта
 
     # Подключимся к базе данных
@@ -96,10 +118,15 @@ def load_Binance():
                     changes = 0
                 
                 cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES (1, '{symbol['symbol']}', '{symbol['lastPrice']}') ON DUPLICATE KEY UPDATE price = '{symbol['lastPrice']}' , `prevDay` = {changes} ,last_update = UNIX_TIMESTAMP();") # Записать изменение цены
-                cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `price`) VALUES (1, '{symbol['symbol']}', {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
-                cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (1, '{symbol['symbol']}', now(), {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} ;")
-                cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (1, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
-                cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (1, '{symbol['symbol']}', {symbol['lastPrice']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
+
+                if(setting["Checkbox"]["history_1h"]["act"]):
+                    cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `price`) VALUES (1, '{symbol['symbol']}', {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
+                if(setting["Checkbox"]["history_1d"]["act"]):
+                    cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (1, '{symbol['symbol']}', now(), {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} ;")
+                if(setting["Checkbox"]["history_10m"]["act"]):
+                    cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (1, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
+                if(setting["Checkbox"]["history_all"]["act"]):
+                    cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (1, '{symbol['symbol']}', {symbol['lastPrice']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
                
         except Exception as inst:
             print(inst) # Если ошибка доступа к результату
@@ -142,7 +169,8 @@ def while_Binance():
                
 # Загрузка Gate
 def load_Gate():
-    
+    global setting
+
     time_start = time.time()
 
     # Подключимся к базе данных
@@ -170,10 +198,15 @@ def load_Gate():
                 changes = 0
             
             cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES (2, '{symbol['currency_pair']}', '{symbol['last']}') ON DUPLICATE KEY UPDATE price = '{symbol['last']}' , `prevDay` = {changes} , last_update = UNIX_TIMESTAMP();") # Записать изменение цены   
-            cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (2, '{symbol['currency_pair']}', date_format(now(),'%H'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-            cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (2, '{symbol['currency_pair']}', now(), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} ;")
-            cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (2, '{symbol['currency_pair']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-            cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (2, '{symbol['currency_pair']}', {symbol['last']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+            if(setting["Checkbox"]["history_1h"]["act"]):
+                cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (2, '{symbol['currency_pair']}', date_format(now(),'%H'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+            if(setting["Checkbox"]["history_1d"]["act"]):
+                cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (2, '{symbol['currency_pair']}', now(), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} ;")
+            if(setting["Checkbox"]["history_10m"]["act"]):
+                cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (2, '{symbol['currency_pair']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+            if(setting["Checkbox"]["history_all"]["act"]):
+                cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (2, '{symbol['currency_pair']}', {symbol['last']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+            
         except Exception as inst:
             print(inst) # Если ошибка доступа к результату
     conn.commit() # Зафиксировать транзакции
@@ -216,6 +249,7 @@ def while_Gate():
 
 # Загрузка Huobi
 def load_Huobi():
+    global setting
 
     time_start = time.time() # Запомним время страта
 
@@ -243,10 +277,14 @@ def load_Huobi():
             changes = 0
         
         cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES (3, '{symbol['symbol']}', '{symbol['close']}') ON DUPLICATE KEY UPDATE price = '{symbol['close']}' , `prevDay` = {changes} , last_update = UNIX_TIMESTAMP();") # Записать изменение цены
-        cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (3, '{symbol['symbol']}', date_format(now(),'%H'), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
-        cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (3, '{symbol['symbol']}', now(), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} ;")
-        cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (3, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
-        cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (3, '{symbol['symbol']}', {symbol['close']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_1h"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (3, '{symbol['symbol']}', date_format(now(),'%H'), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_1d"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (3, '{symbol['symbol']}', now(), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} ;")
+        if(setting["Checkbox"]["history_10m"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (3, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_all"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (3, '{symbol['symbol']}', {symbol['close']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
         
     conn.commit() # После всех записей, зафиксируем записаное.
     conn.close()
@@ -286,6 +324,7 @@ def while_Huobi():
 
 # Загрузка KuCoin
 def load_KuCoin():
+    global setting
 
     time_start = time.time() # Запомним время страта
 
@@ -313,10 +352,14 @@ def load_KuCoin():
             changes = 0
         
         cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES ( 4, '{symbol['symbol']}', '{symbol['last']}') ON DUPLICATE KEY UPDATE price = '{symbol['last']}' , `prevDay` = {changes} , last_update = UNIX_TIMESTAMP();") # Записать изменение цены
-        cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (4, '{symbol['symbol']}', date_format(now(),'%H'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-        cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (4, '{symbol['symbol']}', now(), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} ;")
-        cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (4, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-        cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (4, '{symbol['symbol']}', {symbol['last']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_1h"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (4, '{symbol['symbol']}', date_format(now(),'%H'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_1d"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (4, '{symbol['symbol']}', now(), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} ;")
+        if(setting["Checkbox"]["history_10m"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (4, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_all"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (4, '{symbol['symbol']}', {symbol['last']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
         
     conn.commit() # После всех записей, зафиксируем записаное.
     conn.close()
@@ -412,69 +455,58 @@ def stopAll():
 
 # Создаём форму для управления загрузкой
 def windowGui():
-    global RunLoad, frame, imgNo, imgOk
+    global RunLoad, frame, img, setting, CheckBoxArray
     
     window = tkinter.Tk()
     window.title('Загрузка цен криптовалют')
     window.iconbitmap("img/logo_32x32.ico")
 
+    CheckBoxArray = {}
+
     # Картинки для отображения работы
-    imgNo = tkinter.PhotoImage(file="img/delete_16x16.png")
-    imgOk = tkinter.PhotoImage(file="img/ok_16x16.png")
-    
-    # Пустой массив для иконок бирж
-    logo = {}
+    img["no"] = tkinter.PhotoImage(file="img/delete_16x16.png")
+    img["ok"] = tkinter.PhotoImage(file="img/ok_16x16.png")
 
     # Добавим в массив иконки
-    logo["Hourglass"] = tkinter.PhotoImage(file=f"img/Hourglass_16x16.png")
-    logo["count_load"] = tkinter.PhotoImage(file=f"img/load_16x16.png")
+    img["Hourglass"] = tkinter.PhotoImage(file=f"img/Hourglass_16x16.png")
+    img["count_load"] = tkinter.PhotoImage(file=f"img/load_16x16.png")
 
-    # Каждый раз создаём новый фрейм
+    # Создаём новый фрейм
     frame["Header"] = {}
     frame["Header"][0] = tkinter.Frame(master=window)
-    frame["Header"][0].pack(fill=tkinter.X)
+    frame["Header"][0].pack(fill=tkinter.X, padx=3, ipady=2, ipadx=3)
 
     # Картинка работы
-    frame["Header"]['img_birza'] = tkinter.Label(master=frame["Header"][0], text="", width=4)
-    frame["Header"]['img_birza'].pack(side=tkinter.LEFT)
+    frame["Header"]['img_birza'] = tkinter.Label(master=frame["Header"][0], text="", width=4).pack(side=tkinter.LEFT)
 
     # Название биржи
-    frame["Header"]['txt_name'] = tkinter.Label(master=frame["Header"][0], text="Имя", width=7)
-    frame["Header"]['txt_name'].pack(side=tkinter.LEFT)
+    frame["Header"]['txt_name'] = tkinter.Label(master=frame["Header"][0], text="Имя", width=7).pack(side=tkinter.LEFT)
 
     # Картинка работы
-    frame["Header"]['img_Job'] = tkinter.Label(master=frame["Header"][0], text="Статус", width=6)
-    frame["Header"]['img_Job'].pack(side=tkinter.LEFT)
+    frame["Header"]['img_Job'] = tkinter.Label(master=frame["Header"][0], text="Статус", width=6).pack(side=tkinter.LEFT)
 
     # текст при работе
-    frame["Header"]['txt_Job'] = tkinter.Label(master=frame["Header"][0], text="Инфо", width=20)
-    frame["Header"]['txt_Job'].pack(side=tkinter.LEFT)
+    frame["Header"]['txt_Job'] = tkinter.Label(master=frame["Header"][0], text="Инфо", width=20).pack(side=tkinter.LEFT)
 
     # Таймер выполнения кода
-    frame["Header"]['txt_time'] = tkinter.Label(master=frame["Header"][0], image=logo["Hourglass"], width=10)
-    frame["Header"]['txt_time'].pack(side=tkinter.LEFT)
+    frame["Header"]['txt_time'] = tkinter.Label(master=frame["Header"][0], image=img["Hourglass"], width=10).pack(side=tkinter.LEFT)
 
     # Количество загрузок
-    frame["Header"]['count_load'] = tkinter.Label(master=frame["Header"][0], image=logo["count_load"], width=43)
-    frame["Header"]['count_load'].pack(side=tkinter.LEFT)
-
-    # Кнопка запуска или остановки
-    #frame["Header"]['btn'] = tkinter.Button(master=frame[index][0], text="Запустить", width=10, command=partial(start , index))
-    #frame["Header"]['btn'].pack(side=tkinter.RIGHT)
+    frame["Header"]['count_load'] = tkinter.Label(master=frame["Header"][0], image=img["count_load"], width=43).pack(side=tkinter.LEFT)
 
     # для каждой биржи нужно создать строку для управления запуском.
     for index in RunLoad:
 
         # Добавим в массив иконок биржу
-        logo[index] = tkinter.PhotoImage(file=f"img/{index}_16x16.png")
+        img[index] = tkinter.PhotoImage(file=f"img/{index}_16x16.png")
 
         # Каждый раз создаём новый фрейм
         frame[index] = {}
         frame[index][0] = tkinter.Frame(master=window)
-        frame[index][0].pack(fill=tkinter.X)
+        frame[index][0].pack(fill=tkinter.X, padx=3, ipady=2, ipadx=3)
 
         # Картинка работы
-        frame[index]['img_birza'] = tkinter.Label(master=frame[index][0], image=logo[index], width=20)
+        frame[index]['img_birza'] = tkinter.Label(master=frame[index][0], image=img[index], width=20)
         frame[index]['img_birza'].pack(side=tkinter.LEFT)
 
         # Название биржи
@@ -482,7 +514,7 @@ def windowGui():
         frame[index]['txt_name'].pack(side=tkinter.LEFT)
 
         # Картинка работы
-        frame[index]['img_Job'] = tkinter.Label(master=frame[index][0], image=imgNo, width=20)
+        frame[index]['img_Job'] = tkinter.Label(master=frame[index][0], image=img["no"], width=20)
         frame[index]['img_Job'].pack(side=tkinter.LEFT)
 
         # текст при работе
@@ -501,11 +533,25 @@ def windowGui():
         frame[index]['btn'] = tkinter.Button(master=frame[index][0], text="Запустить", width=10, command=partial(start , index))
         frame[index]['btn'].pack(side=tkinter.RIGHT)
 
+    frame["Checkbox"] = {}
+    for chk in setting["Checkbox"]:
+        CheckBoxArray[chk] = tkinter.BooleanVar()
+        CheckBoxArray[chk].set(setting["Checkbox"][chk]["act"])
+        frame["Checkbox"][chk] = tkinter.Checkbutton(window, text=setting["Checkbox"][chk]["name"], variable=CheckBoxArray[chk], command=CheckBox)
+        frame["Checkbox"][chk].pack(side=tkinter.LEFT)
+    
     window.mainloop()
+
+def CheckBox():
+    global setting, CheckBoxArray
+    for chk in CheckBoxArray:
+        setting["Checkbox"][chk]["act"] = CheckBoxArray[chk].get()
+
+    #print(setting["Checkbox"])
 
 # Обновления формы каждую секунду.
 def update_GUI():
-    global RunLoad, frame, imgNo, imgOk
+    global RunLoad, frame, img
 
     # Подождём пару секунд, пока форма откроется.
     time.sleep(2)
@@ -515,10 +561,10 @@ def update_GUI():
         for index in RunLoad:
             try:
                 if RunLoad[index]["auto_start"]:# Если должен работать
-                    frame[index]['img_Job'].configure(image=imgOk) # Сменим картинку
+                    frame[index]['img_Job'].configure(image=img["ok"]) # Сменим картинку
                     frame[index]['btn'].configure(text="Остановить") # Сменим текст на кнопке
                 else: # Если остановлен
-                    frame[index]['img_Job'].configure(image=imgNo) # Сменим картинку
+                    frame[index]['img_Job'].configure(image=img["no"]) # Сменим картинку
                     frame[index]['btn'].configure(text="Запустить") # Сменим текст на кнопке
             except: # При ошибки доступа к форме, значит её закрыли. Можем завершить работу программы.
                 ok = False
