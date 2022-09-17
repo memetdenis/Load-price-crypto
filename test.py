@@ -1,7 +1,20 @@
-from decimal import Decimal
+RunLoad = {
+    "Binance": {
+        "auto_start":True,
+        "count_load":0
+        },
+    "Gate": {
+        "auto_start":True,
+        "count_load":0
+        },
+    "Huobi": {
+        "auto_start":True,
+        "count_load":0
+        },
+    "KuCoin": {
+        "auto_start":True,
+        "count_load":0
+        }
+}
 
-
-old = round(float('0.00000000000017'),14)
-new = round(float(''),14)
-changes = round(((new - old) / old) * 100, 2)
-print(changes)
+print(RunLoad["Binance"]["auto_start"])
