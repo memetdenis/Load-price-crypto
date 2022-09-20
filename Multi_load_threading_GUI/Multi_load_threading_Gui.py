@@ -1,3 +1,4 @@
+import string
 import threading
 import time
 import MySQLdb
@@ -12,22 +13,22 @@ setting = {
         "user":"root", # Логин MySQL
         "passwd":"", # Пароль MySQL
         "db":"price", # База MySQL
-        "Checkbox": {
-            "history_all": {
-                "name": "Всё за сутки",
-                "act" : True
+        "Checkbox": { # Все чекБоксы
+            "history_1m": { # Системное имя
+                "name": "Каждую минуту, но не более суток", # Название
+                "act" : True # Состояние при запуске
             },
-            "history_10m": {
-                "name": "За сутки , каждые 10 минут",
-                "act" : True
+            "history_10m": { # Системное имя
+                "name": "Каждые 10 минут, но не более суток", # Название
+                "act" : True # Состояние при запуске
             },
-            "history_1h": {
-                "name": "За сутки , каждый час",
-                "act" : True
+            "history_1h": { # Системное имя
+                "name": "Каждый час, но не более суток", # Название
+                "act" : True # Состояние при запуске
             },
-            "history_1d": {
-                "name": "Всегда, раз в день",
-                "act" : True
+            "history_1d": { # Системное имя
+                "name": "Раз в день, всегда", # Название
+                "act" : True # Состояние при запуске
             }
         }
     }
@@ -39,15 +40,15 @@ RunLoad = {
         "count_load":0
         },
     "Gate": {
-        "auto_start":True,
+        "auto_start":False,
         "count_load":0
         },
     "Huobi": {
-        "auto_start":True,
+        "auto_start":False,
         "count_load":0
         },
     "KuCoin": {
-        "auto_start":True,
+        "auto_start":False,
         "count_load":0
         }
 }
@@ -68,7 +69,7 @@ def connectDB():
     return MySQLdb.connect(host=setting["host"], user=setting["user"], passwd=setting["passwd"], db=setting["db"])
 
 # Расчитаем разницу цен
-def price_difference(new, old):
+def price_difference(new : string, old : string):
     if new=='' or new=='0':# Цена не должна быть пустой или 0
         return 0
     else:
@@ -78,12 +79,9 @@ def price_difference(new, old):
         if old==0:
             return 0
         return round(((new - old) / old) * 100, 2)
-        
-# Загрузка Binance
-def load_Binance():
-    global frame, setting
 
-    time_start = time.time() # Запомним время страта
+def save_price(price : list, birza: int):
+    global setting
 
     # Подключимся к базе данных
     conn = connectDB()
@@ -91,12 +89,39 @@ def load_Binance():
 
     # Создадим массив со старыми ценами для расчёта изменения цены за 24 часа
     old_time = round(time.time())-86400 # Расчитаем время - 24 часа в секундах
-    cursor.execute(f"SELECT `symbol`, `price` FROM `price_history_10m` WHERE `birza` = 1 AND `last_update` >= {old_time} GROUP BY `symbol` ORDER BY `price_history_10m`.`last_update` ASC; ")
+    cursor.execute(f"SELECT `symbol`, `price` FROM `price_history_10m` WHERE `birza` = {birza} AND `last_update` >= {old_time} GROUP BY `symbol` ORDER BY `price_history_10m`.`last_update` ASC; ")
     result = cursor.fetchall()
     crypto_price_old = {}
     for row in result:
         crypto_price_old[row[0]] = float(row[1])
-   
+
+    for symbol in price:
+        # Расчитаем изменение цены в процентах
+        if symbol[0] in crypto_price_old:
+            changes = price_difference(symbol[1],crypto_price_old[symbol[0]])
+        else:
+            changes = 0
+        
+        cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES ({birza}, '{symbol[0]}', '{symbol[1]}') ON DUPLICATE KEY UPDATE price = '{symbol[1]}' , `prevDay` = {changes} ,last_update = UNIX_TIMESTAMP();") # Записать изменение цены
+
+        if(setting["Checkbox"]["history_1h"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `price`) VALUES ({birza}, '{symbol[0]}', {symbol[1]}) ON DUPLICATE KEY UPDATE price = {symbol[1]} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_1d"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES ({birza}, '{symbol[0]}', now(), {symbol[1]}) ON DUPLICATE KEY UPDATE price = {symbol[1]} ;")
+        if(setting["Checkbox"]["history_10m"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES ({birza}, '{symbol[0]}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol[1]}) ON DUPLICATE KEY UPDATE price = {symbol[1]} , last_update = UNIX_TIMESTAMP();")
+        if(setting["Checkbox"]["history_1m"]["act"]):
+            cursor.execute(f"INSERT INTO `price_history_1m` (`birza`, `symbol`, `minut`, `price`) VALUES ({birza}, '{symbol[0]}', date_format(current_timestamp(),'%H:%i'), {symbol[1]}) ON DUPLICATE KEY UPDATE price = {symbol[1]} , last_update = UNIX_TIMESTAMP();")
+
+    conn.commit()
+    conn.close()
+
+# Загрузка Binance
+def load_Binance():
+    global frame, setting
+
+    time_start = time.time() # Запомним время страта
+
     #Получим по ссылки данные с ценами.
     price_list = requests.get("https://api.binance.com/api/v3/ticker/24hr").json() # Получим ответ в виде JSON формата
 
@@ -105,34 +130,18 @@ def load_Binance():
         print(f"Error code {price_list['code']} msg = {price_list['msg']}")
         time.sleep(10)
         return False
-
-    
+   
+    price = []
     # Переберём в цикле все торговые пары
     for symbol in price_list:
         try:
             if float(symbol['lastPrice']) > 0: # Проверим наличие цены
-                # Расчитаем изменение цены в процентах
-                if symbol['symbol'] in crypto_price_old:
-                    changes = price_difference(symbol['lastPrice'],crypto_price_old[symbol['symbol']])
-                else:
-                    changes = 0
+                price.append([symbol['symbol'],symbol['lastPrice']])
                 
-                cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES (1, '{symbol['symbol']}', '{symbol['lastPrice']}') ON DUPLICATE KEY UPDATE price = '{symbol['lastPrice']}' , `prevDay` = {changes} ,last_update = UNIX_TIMESTAMP();") # Записать изменение цены
-
-                if(setting["Checkbox"]["history_1h"]["act"]):
-                    cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `price`) VALUES (1, '{symbol['symbol']}', {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
-                if(setting["Checkbox"]["history_1d"]["act"]):
-                    cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (1, '{symbol['symbol']}', now(), {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} ;")
-                if(setting["Checkbox"]["history_10m"]["act"]):
-                    cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (1, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['lastPrice']}) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
-                if(setting["Checkbox"]["history_all"]["act"]):
-                    cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (1, '{symbol['symbol']}', {symbol['lastPrice']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['lastPrice']} , last_update = UNIX_TIMESTAMP();")
-               
         except Exception as inst:
             print(inst) # Если ошибка доступа к результату
 
-    conn.commit()
-    conn.close()
+    save_price(price,1)
 
     # Сообщим о проделанной работе
     frame['Binance']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
@@ -173,45 +182,19 @@ def load_Gate():
 
     time_start = time.time()
 
-    # Подключимся к базе данных
-    conn = connectDB()
-    cursor = conn.cursor()
-
-    # Создадим массив со старыми ценами для расчёта изменения цены за 24 часа
-    old_time = round(time.time())-86400 # Расчитаем время - 24 часа в секундах
-    cursor.execute(f"SELECT `symbol`, `price` FROM `price_history_10m` WHERE `birza` = 2 AND `last_update` >= {old_time} GROUP BY `symbol` ORDER BY `price_history_10m`.`last_update` ASC; ")    
-    result = cursor.fetchall()
-    crypto_price_old = {}
-    for row in result:
-        crypto_price_old[row[0]] = float(row[1])
-
     #Получим данные в виде JSON
     data = requests.get("https://api.gateio.ws/api/v4/spot/tickers/").json()
 
+    price = []
     #В цикле переберём каждую валюту.
     for symbol in data:
         try:
-            # Расчитаем изменение цены в процентах
-            if symbol['currency_pair'] in crypto_price_old:
-                changes = price_difference(symbol['last'],crypto_price_old[symbol['currency_pair']])
-            else:
-                changes = 0
-            
-            cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES (2, '{symbol['currency_pair']}', '{symbol['last']}') ON DUPLICATE KEY UPDATE price = '{symbol['last']}' , `prevDay` = {changes} , last_update = UNIX_TIMESTAMP();") # Записать изменение цены   
-            if(setting["Checkbox"]["history_1h"]["act"]):
-                cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (2, '{symbol['currency_pair']}', date_format(now(),'%H'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-            if(setting["Checkbox"]["history_1d"]["act"]):
-                cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (2, '{symbol['currency_pair']}', now(), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} ;")
-            if(setting["Checkbox"]["history_10m"]["act"]):
-                cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (2, '{symbol['currency_pair']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-            if(setting["Checkbox"]["history_all"]["act"]):
-                cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (2, '{symbol['currency_pair']}', {symbol['last']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-            
+            price.append([symbol['currency_pair'],symbol['last']])        
         except Exception as inst:
             print(inst) # Если ошибка доступа к результату
-    conn.commit() # Зафиксировать транзакции
-    conn.close()
-    
+
+    save_price(price,2)
+
     frame['Gate']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Gate за {round(time.time()-time_start,3)} сек.")
 
@@ -253,42 +236,15 @@ def load_Huobi():
 
     time_start = time.time() # Запомним время страта
 
-    # Подключимся к базе данных
-    conn = connectDB()
-    cursor = conn.cursor()
-
-    # Создадим массив со старыми ценами для расчёта изменения цены за 24 часа
-    old_time = round(time.time())-86400 # Расчитаем время - 24 часа в секундах
-    cursor.execute(f"SELECT `symbol`, `price` FROM `price_history_10m` WHERE `birza` = 3 AND `last_update` >= {old_time} GROUP BY `symbol` ORDER BY `price_history_10m`.`last_update` ASC; ")    
-    result = cursor.fetchall()
-    crypto_price_old = {}
-    for row in result:
-        crypto_price_old[row[0]] = float(row[1])
-
     #Получим по ссылки данные с ценами.
     price_list = requests.get("https://api.huobi.pro/market/tickers").json() # Получим ответ в виде JSON формата
-
+    
+    price = []
     # Переберём в цикле все торговые пары
     for symbol in price_list['data']:
-        # Расчитаем изменение цены в процентах
-        if symbol['symbol'] in crypto_price_old:
-            changes = price_difference(symbol['close'],crypto_price_old[symbol['symbol']])
-        else:
-            changes = 0
-        
-        cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES (3, '{symbol['symbol']}', '{symbol['close']}') ON DUPLICATE KEY UPDATE price = '{symbol['close']}' , `prevDay` = {changes} , last_update = UNIX_TIMESTAMP();") # Записать изменение цены
-        if(setting["Checkbox"]["history_1h"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (3, '{symbol['symbol']}', date_format(now(),'%H'), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
-        if(setting["Checkbox"]["history_1d"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (3, '{symbol['symbol']}', now(), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} ;")
-        if(setting["Checkbox"]["history_10m"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (3, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['close']}) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
-        if(setting["Checkbox"]["history_all"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (3, '{symbol['symbol']}', {symbol['close']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['close']} , last_update = UNIX_TIMESTAMP();")
-        
-    conn.commit() # После всех записей, зафиксируем записаное.
-    conn.close()
+        price.append([symbol['symbol'],symbol['close']])
     
+    save_price(price,3)
     # Сообщим о проделанной работе
     frame['Huobi']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка Huobi за {round(time.time()-time_start,3)} сек.")
@@ -324,45 +280,18 @@ def while_Huobi():
 
 # Загрузка KuCoin
 def load_KuCoin():
-    global setting
 
     time_start = time.time() # Запомним время страта
-
-    # Подключимся к базе данных
-    conn = connectDB()
-    cursor = conn.cursor()
-
-    # Создадим массив со старыми ценами для расчёта изменения цены за 24 часа
-    old_time = round(time.time())-86400 # Расчитаем время - 24 часа в секундах
-    cursor.execute(f"SELECT `symbol`, `price` FROM `price_history_10m` WHERE `birza` = 4 AND `last_update` >= {old_time} GROUP BY `symbol` ORDER BY `price_history_10m`.`last_update` ASC; ")    
-    result = cursor.fetchall()
-    crypto_price_old = {}
-    for row in result:
-        crypto_price_old[row[0]] = float(row[1])
 
     #Получим по ссылки данные с ценами.
     price_list = requests.get("https://api.kucoin.com/api/v1/market/allTickers").json() # Получим ответ в виде JSON формата
 
+    price = []
     # Переберём в цикле все торговые пары
     for symbol in price_list['data']['ticker']:
-        # Расчитаем изменение цены в процентах
-        if symbol['symbol'] in crypto_price_old:
-            changes = price_difference(symbol['last'],crypto_price_old[symbol['symbol']])
-        else:
-            changes = 0
+        price.append([symbol['symbol'],symbol['last']])
         
-        cursor.execute(f"INSERT INTO `price` (`birza`, `symbol`, `price`) VALUES ( 4, '{symbol['symbol']}', '{symbol['last']}') ON DUPLICATE KEY UPDATE price = '{symbol['last']}' , `prevDay` = {changes} , last_update = UNIX_TIMESTAMP();") # Записать изменение цены
-        if(setting["Checkbox"]["history_1h"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history_1h` (`birza`, `symbol`, `hour`, `price`) VALUES (4, '{symbol['symbol']}', date_format(now(),'%H'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-        if(setting["Checkbox"]["history_1d"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history_1d` (`birza`, `symbol`, `date_day`, `price`) VALUES (4, '{symbol['symbol']}', now(), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} ;")
-        if(setting["Checkbox"]["history_10m"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history_10m` (`birza`, `symbol`, `minut`, `price`) VALUES (4, '{symbol['symbol']}', concat(SUBSTRING(date_format(now(),'%H:%i'),1,4), '0'), {symbol['last']}) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-        if(setting["Checkbox"]["history_all"]["act"]):
-            cursor.execute(f"INSERT INTO `price_history` (`birza`, `symbol`, `price`, `last_update`) VALUES (4, '{symbol['symbol']}', {symbol['last']}, UNIX_TIMESTAMP()) ON DUPLICATE KEY UPDATE price = {symbol['last']} , last_update = UNIX_TIMESTAMP();")
-        
-    conn.commit() # После всех записей, зафиксируем записаное.
-    conn.close()
+    save_price(price,4)
     # Сообщим о проделанной работе
     frame['KuCoin']['txt_Job'].configure(text=f"Загрузил за {round(time.time()-time_start,3)} сек.")
     print(f"Загрузка KuCoin за {round(time.time()-time_start,3)} сек.")
@@ -397,7 +326,7 @@ def while_KuCoin():
     frame[birza]['txt_time'].configure(text="")
 
 # Запустим нужную биржу в новый поток.
-def start_while(birza):
+def start_while(birza : string):
     global threading_Job
 
     # Узнаем какую  биржу нужно запустить
@@ -416,7 +345,7 @@ def start_while(birza):
 # Смена работы загрузки биржи.
 # Если работало, то остановим
 # Если не работало, то запустим
-def start(birza):
+def start(birza:string):
     global RunLoad, threading_Job
   
     # При получении биржи, меняем статус.
@@ -492,7 +421,7 @@ def windowGui():
     frame["Header"]['txt_time'] = tkinter.Label(master=frame["Header"][0], image=img["Hourglass"], width=10).pack(side=tkinter.LEFT)
 
     # Количество загрузок
-    frame["Header"]['count_load'] = tkinter.Label(master=frame["Header"][0], image=img["count_load"], width=43).pack(side=tkinter.LEFT)
+    frame["Header"]['count_load'] = tkinter.Label(master=frame["Header"][0], image=img["count_load"], width=48).pack(side=tkinter.LEFT)
 
     # для каждой биржи нужно создать строку для управления запуском.
     for index in RunLoad:
@@ -526,28 +455,33 @@ def windowGui():
         frame[index]['txt_time'].pack(side=tkinter.LEFT)
 
         # Количество загрузок
-        frame[index]['count_load'] = tkinter.Label(master=frame[index][0], text="", width=2)
+        frame[index]['count_load'] = tkinter.Label(master=frame[index][0], text="", width=3)
         frame[index]['count_load'].pack(side=tkinter.LEFT)
 
         # Кнопка запуска или остановки
         frame[index]['btn'] = tkinter.Button(master=frame[index][0], text="Запустить", width=10, command=partial(start , index))
         frame[index]['btn'].pack(side=tkinter.RIGHT)
 
+    # Форма ЧекБоксов
     frame["Checkbox"] = {}
+    frame["Checkbox"][0] = tkinter.LabelFrame(master=window, text="Настройки сохранения")
+    frame["Checkbox"][0].pack(fill=tkinter.X, padx=3, ipady=2, ipadx=3)
+    row = 0
     for chk in setting["Checkbox"]:
         CheckBoxArray[chk] = tkinter.BooleanVar()
         CheckBoxArray[chk].set(setting["Checkbox"][chk]["act"])
-        frame["Checkbox"][chk] = tkinter.Checkbutton(window, text=setting["Checkbox"][chk]["name"], variable=CheckBoxArray[chk], command=CheckBox)
-        frame["Checkbox"][chk].pack(side=tkinter.LEFT)
+        frame["Checkbox"][chk] = tkinter.Checkbutton(master=frame["Checkbox"][0], text=setting["Checkbox"][chk]["name"], variable=CheckBoxArray[chk], command=CheckBox)
+        frame["Checkbox"][chk].grid(row=row, column=0, sticky=tkinter.W)
+        row += 1
     
     window.mainloop()
 
+# Изменяем состояние чек боксов
 def CheckBox():
     global setting, CheckBoxArray
     for chk in CheckBoxArray:
         setting["Checkbox"][chk]["act"] = CheckBoxArray[chk].get()
 
-    #print(setting["Checkbox"])
 
 # Обновления формы каждую секунду.
 def update_GUI():
