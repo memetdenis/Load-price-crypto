@@ -1,20 +1,13 @@
-RunLoad = {
-    "Binance": {
-        "auto_start":True,
-        "count_load":0
-        },
-    "Gate": {
-        "auto_start":True,
-        "count_load":0
-        },
-    "Huobi": {
-        "auto_start":True,
-        "count_load":0
-        },
-    "KuCoin": {
-        "auto_start":True,
-        "count_load":0
-        }
-}
+import tkinter
 
-print(RunLoad["Binance"]["auto_start"])
+def p():
+    print(var.get())
+
+window = tkinter.Tk()
+var = tkinter.BooleanVar()
+var.set(True)
+chk = tkinter.Checkbutton(window, text='foo', variable=var, command=p)
+chk.pack(side=tkinter.LEFT)
+
+#txt_check = tkinter.Label(master=window, text="Имя", width=7).pack(side=tkinter.LEFT)
+window.mainloop()
