@@ -24,7 +24,7 @@ setting = {
             },
             "history_1h": { # Системное имя
                 "name": "Каждый час, но не более суток", # Название
-                "act" : True # Состояние при запуске
+                "act" : False # Состояние при запуске
             },
             "history_1d": { # Системное имя
                 "name": "Раз в день, всегда", # Название
@@ -40,15 +40,15 @@ RunLoad = {
         "count_load":0
         },
     "Gate": {
-        "auto_start":False,
+        "auto_start":True,
         "count_load":0
         },
     "Huobi": {
-        "auto_start":False,
+        "auto_start":True,
         "count_load":0
         },
     "KuCoin": {
-        "auto_start":False,
+        "auto_start":True,
         "count_load":0
         }
 }
