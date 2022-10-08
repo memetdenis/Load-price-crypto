@@ -1,8 +1,11 @@
-Готовый код для загрузки цен с 4 бирж
-- Binance
-- Gate
-- Huobi
-- KuCoin
+Готовый код для загрузки цен с 4 бирж:<br>
+![Binance](/img/Binance_16x16.png) Binance<br>
+![Gate](/img/Gate_16x16.png) Gate<br>
+![Huobi](/img/Huobi_16x16.png) Huobi<br>
+![KuCoin](/img/KuCoin_16x16.png) KuCoin<br>
+
+
+
 С чего начать:
 1. Создать базу данных из файла price.sql
 2. Внести изменения в настройки
