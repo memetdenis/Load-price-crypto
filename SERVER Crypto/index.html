@@ -1,0 +1,262 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="favicon.ico">
+<title>Загрузка цен с бирж</title>
+</head>
+<style>
+	body{
+		background-color: #0101010a;
+		margin: 0;
+		font-family: Inter, -apple-system, BlinkMacSystemFont, "segoe ui", Roboto, Helvetica, Arial, sans-serif;
+		font-size: 13px;
+	}
+
+	/* Блок , ссылки как кнопки */
+	.button {
+		display: inline-block;
+		font-family: arial,sans-serif;
+		font-size: 14px;
+		font-weight: bold;
+		color: rgb(68,68,68);
+		text-decoration: none;
+		user-select: none;
+		padding: .2em 0.8em;
+		outline: none;
+		border: 1px solid rgba(0,0,0,.1);
+		border-radius: 2px;
+		background: rgb(245,245,245) linear-gradient(#f4f4f4, #f1f1f1);
+		transition: all .218s ease 0s;
+		margin: 5px;
+		cursor: pointer;
+	}
+	.button:hover {
+		color: rgb(24,24,24);
+		border: 1px solid rgb(198,198,198);
+		background: #f7f7f7 linear-gradient(#f7f7f7, #f1f1f1);
+		box-shadow: 0 1px 2px rgba(0,0,0,.1);
+	}
+	.button:active {
+		color: rgb(51,51,51);
+		border: 1px solid rgb(204,204,204);
+		background: rgb(238,238,238) linear-gradient(rgb(238,238,238), rgb(224,224,224));
+		box-shadow: 0 1px 2px rgba(0,0,0,.1) inset;
+	}
+	.img_button{
+		width: 16px;
+		margin-bottom: -3px;
+		cursor: pointer;
+	}
+	.img_icon{
+		width: 16px;
+		margin-bottom: -3px;
+		cursor: pointer;
+	}
+	.td_center{
+		text-align: center;
+		margin: 3px;
+		padding: 3px 5px;
+	}
+	.table_block{
+		border: 1px solid #aeaeae;
+		border-radius: 6px;
+		border-spacing: 0;
+		margin: 3px;
+		padding: 8px;
+		min-width: 400px;
+	}
+</style>
+	
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script>
+
+	class Get{
+		//*******************************************************************************************
+		// Загрузим список бирж
+		static birzi(){
+			$.get("./api/?act=birzi", function(data) {
+				HTML.listBirzi(data);
+				Get.checkbox();
+			});
+		}
+
+		//*******************************************************************************************
+		// Загрузим счписок бирж и обновим данные у списка, счетчик количества загрузок и последний лог
+		static refresh(){
+			$.get("./api/?act=birzi", function(data) {
+				HTML.updateCountLoad(data);
+			});
+		}
+
+		//*******************************************************************************************
+		// Загрузим текущее время следующей загрузки
+		static time(){
+			$.get("./api/?act=time_load", function(data) {
+				HTML.time(data);
+			});
+		}
+
+		//*******************************************************************************************
+		// Загрузим список чекбоксов
+		static checkbox(){
+			$.get("./api/?act=checkbox", function(data) {
+				HTML.checkbox(data);
+			});
+		}
+
+		//*******************************************************************************************
+		// Переключаем активность загрузки бота
+		static onoff(name){
+			$.get(`./api/?act=onoff&name=${name}`, function(data) {
+				if(data[name]['auto_start']){
+					$(`#${name}_auto_start`).attr('src','img/On.png');
+				}else{
+					$(`#${name}_auto_start`).attr('src','img/Off.png');
+				}
+			});
+		}
+
+		//*******************************************************************************************
+		// Переключаем активность загрузки бота
+		static checkboxOnOff(name){
+			$.get(`./api/?act=checkboxOnOff&name=${name}`, function(data) {
+				if(data[name]['act']){
+					$(`#${name}_act`).attr('src','img/On.png');
+				}else{
+					$(`#${name}_act`).attr('src','img/Off.png');
+				}
+			});
+		}
+	}
+
+	class HTML{
+
+		//*******************************************************************************************
+		// Покажем счетчик времени повторной загрузки цен
+		static time(setting){
+			if(setting['time_load']<=1){
+				Get.refresh();
+			}
+			$("#time_load").html(setting['time_load']);
+		}
+
+		//*******************************************************************************************
+		// Обновим у списка бирж, счетчик загрузок и последнее сообщение лога
+		static updateCountLoad(birzi){
+			// Если есть список бирж, то покажем его
+			if(Object.keys(birzi).length>0){
+				for (let key in birzi) {
+					$(`#${key}_count_load`).html(birzi[key]['count_load']);
+					$(`#${key}_log`).html(birzi[key]['log']);
+				}
+			}
+		}
+
+		//*******************************************************************************************
+		// Создаём блок с биржами
+		static listBirzi(birzi){
+			let html = `<table class=table_block>
+				<tr>
+					<td class=td_center>#</td>
+					<td>Название</td>
+					<td class=td_center>ON/OFF</td>
+					<td class=td_center><img src="img/load_16x16.png" class=img_icon></td>
+					<td><img src="img/book2.png" class=img_icon></td>
+				</tr>`;
+			
+			// Ошибка в работе
+			if('code' in birzi){
+				$('#list_birzi').html("Ошибка загрузки");
+				return false;
+			}
+
+			// Если есть список бирж, то покажем его
+			if(Object.keys(birzi).length>0){
+				for (let key in birzi) {
+					// Проверим состояние запуска загрузки для биржи
+					let img_start = 'Off';
+					if(birzi[key]['auto_start']){
+						img_start = 'On';
+					}
+
+					html += `
+						<tr>
+							<td class=td_center><img src="img/${birzi[key]['icon']}" class=img_icon></td>
+							<td>${key}</td>
+							<td class=td_center><img src="img/${img_start}.png" class=img_button id="${key}_auto_start" onclick="Get.onoff('${key}');"></td>
+							<td id="${key}_count_load" class=td_center>${birzi[key]['count_load']}</td>
+							<td id="${key}_log">${birzi[key]['log']}</td>
+						</tr>`;
+				}
+			}
+			html +=`
+				<tr>
+					<td colspan=5 class=td_center>Следующее обновление через <b><span id="time_load">0</span></b></td>
+				</tr>
+			</table>`;
+
+			$('#list_birzi').html(html);
+			
+			// Каждую секунду получаем данные с сервера
+			var time = setInterval(function(){
+				Get.time();
+			}, 1000);
+
+			// Каждые 10 секунд будем обновлять количество загрузок
+			var refresh = setInterval(function(){
+				Get.refresh();
+			}, 5000);
+
+		}
+
+		//*******************************************************************************************
+		// Создаём блок с чекбоксами
+		static checkbox(checkbox){
+			let html = `<table class=table_block>
+				<tr>
+					<td class=td_center>Состояние</td>
+					<td>Название</td>
+				</tr>`;
+
+			// Если есть список бирж, то покажем его
+			if(Object.keys(checkbox).length>0){
+				for (let key in checkbox) {
+					// Проверим состояние запуска загрузки для биржи
+					let img_start = 'Off';
+					if(checkbox[key]['act']){
+						img_start = 'On';
+					}
+
+					html += `
+						<tr>
+							<td class=td_center><img src="img/${img_start}.png" class=img_button id="${key}_act" onclick="Get.checkboxOnOff('${key}');"></td>
+							<td >${checkbox[key]['name']}</td>
+						</tr>`;
+				}
+			}
+			html +='</table>';
+			$('#list_checkbox').html(html);
+
+		}
+
+		//*******************************************************************************************
+		// Что нужно сделать при старте.
+		static start(){
+			Get.birzi();
+		}
+	}
+ 
+	//**********************************************************
+	//По окончании загрузки страницы, покажем настройки
+	$(function(){
+		HTML.start();
+	});
+</script>
+<body>
+	<center>
+		<div id="list_birzi"></div>
+		<div id="list_checkbox"></div>
+	</center>
+</body>
+</html>
