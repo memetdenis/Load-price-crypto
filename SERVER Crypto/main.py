@@ -128,7 +128,7 @@ class API:
     # Счетчик времени запуска загрузки скриптов            
     def time_load(http):
         time_load = {
-            "time_load":Setting.setting["time_load"]
+            "time_load":Setting.setting["refreshTime"] - Setting.setting["time_load"]
         }
         API.send_json(http, time_load)
 
