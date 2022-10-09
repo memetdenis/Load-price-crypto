@@ -15,17 +15,19 @@ import json # Обработка json
 class Setting:
     birzi = {
         "Binance": {
-            "auto_start":True,
-            "count_load":0,
-            "icon":"Binance.png",
-            "last_time":0,
-            "log":""
+            "auto_start":True, # Авто старт загрузки
+            "count_load":0, # Колчиество загрузок с момента старта
+            "icon":"Binance.png", # Иконка
+            "last_time":0, # Последнее успешная загрузка
+            "number":1, # Номер биржи в базе
+            "log":"" # Последнее сообщение после загрузки
             },
         "Gate": {
             "auto_start":True,
             "count_load":0,
             "icon":"Gate.png",
             "last_time":0,
+            "number":2,
             "log":""
             },
         "Huobi": {
@@ -33,6 +35,7 @@ class Setting:
             "count_load":0,
             "icon":"Huobi.png",
             "last_time":0,
+            "number":3,
             "log":""
             },
         "KuCoin": {
@@ -40,6 +43,7 @@ class Setting:
             "count_load":0,
             "icon":"KuCoin.png",
             "last_time":0,
+            "number":4,
             "log":""
             }
     }
@@ -71,10 +75,6 @@ class Setting:
         },
         "time_load": 0
     }
-
-
-# Массив с нашими потоками
-threading_Job = {} # Пока пустой
 
 class Img:
     def load_favicon(self):
@@ -219,13 +219,13 @@ class Birzi:
             except Exception as inst:
                 print(inst) # Если ошибка доступа к результату
 
-        save_price(price,1)
+        save_price(price, Setting.birzi['Binance']['number'])
 
         # Сообщим о проделанной работе
         
         Setting.birzi['Binance']["count_load"] += 1
         Setting.birzi['Binance']["log"] = f"Загрузил Binance за {round(time.time()-time_start,3)} сек."
-        log(Setting.birzi['Binance']["log"], 1)
+        log(Setting.birzi['Binance']["log"],  Setting.birzi['Binance']['number'])
                 
     # Загрузка Gate
     def Gate():
@@ -242,11 +242,11 @@ class Birzi:
             except Exception as inst:
                 print(inst) # Если ошибка доступа к результату
 
-        save_price(price,2)
+        save_price(price,  Setting.birzi['Gate']['number'])
 
         Setting.birzi['Gate']["count_load"] += 1
         Setting.birzi['Gate']["log"] = f"Загрузка Gate за {round(time.time()-time_start,3)} сек."
-        log(Setting.birzi['Gate']["log"], 2)
+        log(Setting.birzi['Gate']["log"], Setting.birzi['Gate']['number'])
 
     # Загрузка Huobi
     def Huobi():
@@ -261,12 +261,12 @@ class Birzi:
         for symbol in price_list['data']:
             price.append([symbol['symbol'],symbol['close']])
         
-        save_price(price,3)
+        save_price(price, Setting.birzi['Huobi']['number'])
 
         # Сообщим о проделанной работе
         Setting.birzi['Huobi']["count_load"] += 1
         Setting.birzi['Huobi']["log"] = f"Загрузка Huobi за {round(time.time()-time_start,3)} сек."
-        log(Setting.birzi['Huobi']["log"], 3)
+        log(Setting.birzi['Huobi']["log"], Setting.birzi['Huobi']['number'])
 
     # Загрузка KuCoin
     def KuCoin():
@@ -281,11 +281,11 @@ class Birzi:
         for symbol in price_list['data']['ticker']:
             price.append([symbol['symbol'],symbol['last']])
             
-        save_price(price,4)
+        save_price(price, Setting.birzi['KuCoin']['number'])
         # Сообщим о проделанной работе
         Setting.birzi['KuCoin']["count_load"] += 1
         Setting.birzi['KuCoin']["log"] = f"Загрузка KuCoin за {round(time.time()-time_start,3)} сек."
-        log(Setting.birzi['KuCoin']["log"], 4)
+        log(Setting.birzi['KuCoin']["log"], Setting.birzi['KuCoin']['number'])
     
 #Подключение к базе данных
 def connectDB():
