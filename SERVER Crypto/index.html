@@ -65,7 +65,7 @@
 		margin: 12px;
 		padding: 8px;
 		min-width: 400px;
-		box-shadow: 0 0 10px rgb(0 0 0 / 50%);
+		box-shadow: 0 0 10px rgb(0, 0, 0, 0.4);
 	}
 </style>
 	
@@ -77,13 +77,16 @@
 		// Загрузим список бирж
 		static birzi(){
 			$.get("./api/?act=birzi", function(data) {
+				// Покажем результат
 				HTML.listBirzi(data);
+
+				// После загрузки бирж, загрузим список настроек с чекбоксами.
 				Get.checkbox();
 			});
 		}
 
 		//*******************************************************************************************
-		// Загрузим счписок бирж и обновим данные у списка, счетчик количества загрузок и последний лог
+		// Загрузим список бирж и обновим данные у списка, счетчик количества загрузок и последний лог
 		static refresh(){
 			$.get("./api/?act=birzi", function(data) {
 				HTML.updateCountLoad(data);
@@ -162,7 +165,7 @@
 					<td class=td_center>#</td>
 					<td>Название</td>
 					<td class=td_center>ON/OFF</td>
-					<td class=td_center><img src="img/load_16x16.png" class=img_icon></td>
+					<td class=td_center><img src="img/load.png" class=img_icon></td>
 					<td><img src="img/book2.png" class=img_icon></td>
 				</tr>`;
 			
