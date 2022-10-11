@@ -1,10 +1,10 @@
 Проект по загрузки цен с бирж криптовалют.<br>
 Разбираю способы и варианты загрузок.<br>
 📢 Уже реализовано:
-<br>![Binance](/img/Binance_16x16.png)
-![Gate](/img/Gate_16x16.png)
-![Huobi](/img/Huobi_16x16.png)
-![KuCoin](/img/KuCoin_16x16.png)
+<br>![Binance](/img_git/Binance_16x16.png)
+![Gate](/img_git/Gate_16x16.png)
+![Huobi](/img_git/Huobi_16x16.png)
+![KuCoin](/img_git/KuCoin_16x16.png)
 
 <ol>
   <li><b>Binance WebSocket</b>. Получаем данные каждую секунду.</li>
