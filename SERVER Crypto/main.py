@@ -3,7 +3,6 @@ import threading
 import time
 import MySQLdb
 import requests
-import tkinter
 from functools import partial
 from http.server import HTTPServer, BaseHTTPRequestHandler # Веб сервер
 from urllib.parse import urlparse, parse_qs # Обработка адресной строки
@@ -179,7 +178,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             Img.load_favicon(self)
         #Остальные пути обрабатываем здесь.
         elif self.path.startswith("/api/"):
-            #print(get_array)
             API.route(self, get_array)
             pass
         else:
@@ -187,7 +185,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
 
-            #print(self.path)
             if 'act' in get_array:
                 self.wfile.write(f"{get_array['act'][0]}".encode())
             else:
