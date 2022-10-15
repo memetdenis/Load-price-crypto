@@ -14,16 +14,17 @@ pip install requests
 
 Настройка :
 ```Python
-setting = {
-        "refreshTime":60, # Время повторной загрузки в секундах
+    # Массив настроек
+    setting = {
+        "refreshTime":180, # Время повторной загрузки в секундах
         "host":"localhost", # Хост для MySQL
         "user":"root", # Логин MySQL
         "passwd":"", # Пароль MySQL
         "db":"price", # База MySQL
-        "Checkbox": { # Все чекБоксы
+        "checkbox": { # Все чекБоксы
             "history_1m": { # Системное имя
                 "name": "Каждую минуту, но не более суток", # Название
-                "act" : True # Состояние при запуске
+                "act" : False # Состояние при запуске
             },
             "history_10m": { # Системное имя
                 "name": "Каждые 10 минут, но не более суток", # Название
@@ -37,28 +38,45 @@ setting = {
                 "name": "Раз в день, всегда", # Название
                 "act" : True # Состояние при запуске
             }
-        }
+        },
+        "time_load": 0
     }
 ```
 
 Настройка автозапуска загрузки
 ```Python
-RunLoad = {
-    "Binance": {
-        "auto_start":True, # Автозапуск
-        "count_load":0 # Счетчик количесво загрузок
-        },
-    "Gate": {
-        "auto_start":False,
-        "count_load":0
-        },
-    "Huobi": {
-        "auto_start":False,
-        "count_load":0
-        },
-    "KuCoin": {
-        "auto_start":False,
-        "count_load":0
-        }
-}
+   birzi = {
+        "Binance": {
+            "auto_start":True, # Авто старт загрузки
+            "count_load":0, # Колчиество загрузок с момента старта
+            "icon":"Binance.png", # Иконка
+            "last_time":0, # Последнее успешная загрузка
+            "number":1, # Номер биржи в базе
+            "log":"" # Последнее сообщение после загрузки
+            },
+        "Gate": {
+            "auto_start":True,
+            "count_load":0,
+            "icon":"Gate.png",
+            "last_time":0,
+            "number":2,
+            "log":""
+            },
+        "Huobi": {
+            "auto_start":True,
+            "count_load":0,
+            "icon":"Huobi.png",
+            "last_time":0,
+            "number":3,
+            "log":""
+            },
+        "KuCoin": {
+            "auto_start":True,
+            "count_load":0,
+            "icon":"KuCoin.png",
+            "last_time":0,
+            "number":4,
+            "log":""
+            }
+    }
 ```
