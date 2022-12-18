@@ -3,7 +3,6 @@ import threading
 import time
 import MySQLdb
 import requests
-from functools import partial
 from http.server import HTTPServer, BaseHTTPRequestHandler # Веб сервер
 from urllib.parse import urlparse, parse_qs # Обработка адресной строки
 import shutil # Доступ к файлам
@@ -15,7 +14,7 @@ class Setting:
     birzi = {
         "Binance": {
             "auto_start":True, # Авто старт загрузки
-            "count_load":0, # Колчиество загрузок с момента старта
+            "count_load":0, # Количество загрузок с момента старта
             "icon":"Binance.png", # Иконка
             "last_time":0, # Последнее успешная загрузка
             "number":1, # Номер биржи в базе
@@ -176,10 +175,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         # Подгрузим иконку
         elif self.path == "/favicon.ico":
             Img.load_favicon(self)
-        #Остальные пути обрабатываем здесь.
+        # Остальные пути обрабатываем здесь.
         elif self.path.startswith("/api/"):
             API.route(self, get_array)
-            pass
         else:
             self.send_response(200)
             self.send_header('Content-type', 'text/html; charset=utf-8')
@@ -190,7 +188,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             else:
                 html = open('index.html','r', encoding = "utf-8").read()
                 self.wfile.write(html.encode())
-                pass
 
 class Birzi:
     # Загрузка Binance
@@ -288,7 +285,7 @@ class Birzi:
 def connectDB():
     return MySQLdb.connect(host=Setting.setting["host"], user=Setting.setting["user"], passwd=Setting.setting["passwd"], db=Setting.setting["db"])
     
-# Расчитаем разницу цен
+# Рассчитаем разницу цен
 def price_difference(new : string, old : string):
     if new=='' or new=='0':# Цена не должна быть пустой или 0
         return 0
@@ -307,15 +304,15 @@ def save_price(price : list, birza: int):
     cursor = conn.cursor()
 
     # Создадим массив со старыми ценами для расчёта изменения цены за 24 часа
-    old_time = round(time.time())-86400 # Расчитаем время - 24 часа в секундах
-    cursor.execute(f"SELECT `symbol`, `price` FROM `price_history_10m` WHERE `birza` = {birza} AND `last_update` >= {old_time} GROUP BY `symbol` ORDER BY `price_history_10m`.`last_update` ASC; ")
+    old_time = round(time.time())-86400+600 # Рассчитаем время - 24 часа в секундах
+    cursor.execute(f"SELECT `symbol`, `price`, MIN(`last_update`) FROM `price_history_10m` WHERE `birza` = {birza} AND `last_update` BETWEEN {old_time} AND ({old_time} + 700) GROUP BY `symbol` ; ")
     result = cursor.fetchall()
     crypto_price_old = {}
     for row in result:
         crypto_price_old[row[0]] = float(row[1])
 
     for symbol in price:
-        # Расчитаем изменение цены в процентах
+        # Рассчитаем изменение цены в процентах
         if symbol[0] in crypto_price_old:
             changes = price_difference(symbol[1],crypto_price_old[symbol[0]])
         else:
